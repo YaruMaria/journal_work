@@ -3,520 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ student[1] }} - Личное дело</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <title>{{ student[1] }} - Ученик</title>
     <style>
-        :root {
-            --primary-color: #4a76a8;
-            --success-color: #5cb85c;
-            --warning-color: #f0ad4e;
-            --danger-color: #d9534f;
-            --info-color: #5bc0de;
-            --light-gray: #f5f5f5;
-            --dark-gray: #333;
-        }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            color: var(--dark-gray);
-            background-color: #f9f9f9;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            font-family: Arial, sans-serif;
+            margin: 20px;
         }
         .student-header {
-            background: linear-gradient(135deg, var(--primary-color), #3a5f8a);
-            color: white;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            position: relative;
-            overflow: hidden;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
         }
-        .student-header::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100px;
-            height: 100px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-            transform: translate(30%, -30%);
-        }
-        h1, h2, h3 {
-            color: var(--primary-color);
-            margin-top: 0;
-        }
-        .student-info {
+        .lessons-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
+            grid-template-columns: 100px repeat(3, 1fr);
+            gap: 10px;
         }
-        .student-info p {
-            margin: 5px 0;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 12px;
-            border-radius: 4px;
+        .grid-header {
+            font-weight: bold;
+            padding: 10px;
+            background-color: #e0e0e0;
+            text-align: center;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        th, td {
+        .grid-cell {
+            padding: 15px;
             border: 1px solid #ddd;
-            padding: 12px 15px;
-            text-align: left;
+            min-height: 60px;
         }
-        th {
-            background-color: var(--primary-color);
-            color: white;
-            font-weight: 600;
+        .lesson-number {
+            font-weight: bold;
+            text-align: center;
         }
-        tr:nth-child(even) {
-            background-color: var(--light-gray);
-        }
-        .btn {
-            display: inline-flex;
+        .coins-container {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 8px 16px;
-            background-color: var(--primary-color);
+        }
+        .coins-selector {
+            margin-top: 10px;
+            display: none;
+        }
+        .coins-selector.active {
+            display: block;
+        }
+        .coin-preview {
+            font-size: 24px;
+            margin: 5px 0;
+        }
+        .coin-option {
+            margin: 0 5px;
+            cursor: pointer;
+        }
+        .homework-input {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px;
+        }
+        .save-btn {
+            margin-top: 5px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
             color: white;
-            text-decoration: none;
-            border-radius: 4px;
             border: none;
             cursor: pointer;
-            font-size: 14px;
-            margin: 5px;
-            transition: all 0.3s ease;
         }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .btn i {
-            margin-right: 5px;
-        }
-        .btn-success {
-            background-color: var(--success-color);
-        }
-        .btn-danger {
-            background-color: var(--danger-color);
-        }
-        .btn-info {
-            background-color: var(--info-color);
-        }
-        .btn-warning {
-            background-color: var(--warning-color);
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-        input, textarea, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-family: inherit;
-            transition: border 0.3s;
-        }
-        input:focus, textarea:focus {
-            border-color: var(--primary-color);
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(74, 118, 168, 0.2);
-        }
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            font-size: 12px;
-            font-weight: bold;
-            line-height: 1;
-            color: white;
-            text-align: center;
-            white-space: nowrap;
-            vertical-align: middle;
-            border-radius: 10px;
-            margin-left: 5px;
-        }
-        .badge-success {
-            background-color: var(--success-color);
-        }
-        .badge-warning {
-            background-color: var(--warning-color);
-        }
-        .badge-danger {
-            background-color: var(--danger-color);
-        }
-        .progress-container {
-            margin: 15px 0;
-        }
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-        .progress {
-            height: 20px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-bar {
-            height: 100%;
-            background-color: var(--success-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: white;
-            transition: width 0.6s ease;
-        }
-        .problem-item {
-            background-color: #ffebee;
-        }
-        .problem-item td:first-child {
-            border-left: 3px solid var(--danger-color);
-        }
-        .good-item {
-            background-color: #e8f5e9;
-        }
-        .good-item td:first-child {
-            border-left: 3px solid var(--success-color);
-        }
-        .flash-message {
-            padding: 12px 15px;
-            margin: 15px 0;
-            border-radius: 4px;
-            border-left: 4px solid transparent;
-        }
-        .flash-success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            border-left-color: var(--success-color);
-        }
-        .flash-error {
-            background-color: #ffebee;
-            color: #c62828;
-            border-left-color: var(--danger-color);
-        }
-        .lesson-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border-radius: 8px;
-            background-color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .score-input {
-            width: 60px;
-            text-align: center;
-        }
-        .notes-input {
-            min-height: 50px;
-            resize: vertical;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .no-lessons {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-style: italic;
-        }
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            th, td {
-                padding: 8px 10px;
-            }
-            .student-info {
-                grid-template-columns: 1fr;
-            }
+        .lesson-link {
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Flash-сообщения -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message flash-{{ category }}">
-                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
-                        {{ message }}
-                    </div>
+    <div class="student-header">
+        <h2>{{ student[1] }}</h2>
+        <p>Уровень: {{ student[2] or 'Не указан' }}</p>
+    </div>
+
+    <div class="lessons-grid">
+        <!-- Заголовки столбцов -->
+        <div class="grid-header">Урок</div>
+        <div class="grid-header">Усвоение темы</div>
+        <div class="grid-header">Работа на уроке</div>
+        <div class="grid-header">Домашнее задание</div>
+
+        <!-- Строки с уроками -->
+        {% for lesson in lessons %}
+        <div class="grid-cell lesson-number">
+            <a href="{{ url_for('student_old', student_id=student[0]) }}" class="lesson-link">{{ loop.index }}</a>
+        </div>
+
+        <!-- Усвоение темы -->
+        <div class="grid-cell coins-container" onclick="showCoinSelector(this, 'understanding', {{ lesson[0] }})">
+            <div class="coin-preview">
+                {% for _ in range(lesson[4]) %}🪙{% endfor %}
+            </div>
+            <div class="coins-selector" data-type="understanding" data-lesson="{{ lesson[0] }}">
+                {% for n in range(6) %}
+                    <span class="coin-option" onclick="setCoins(this, {{ n }}, 'understanding', {{ lesson[0] }}, {{ student[0] }})">{{ n }} 🪙</span>
                 {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <!-- Шапка профиля ученика -->
-        <div class="student-header">
-            <h1><i class="fas fa-user-graduate"></i> {{ student[1] }}</h1>
-            <div class="student-info">
-                <p><i class="fas fa-layer-group"></i> <strong>Уровень:</strong> {{ student[2] or 'Не указан' }}</p>
-                <p><i class="fas fa-calendar-day"></i> <strong>Начал занятия:</strong> {{ student[3] or 'Не указана' }}</p>
-                <p><i class="fas fa-bullseye"></i> <strong>Цель:</strong> {{ student[4] or 'Не указана' }}</p>
             </div>
         </div>
 
-        <!-- Текущий активный урок -->
-        {% if active_lesson %}
-        <div class="lesson-section">
-            <h2><i class="fas fa-chalkboard-teacher"></i> Текущий урок: {{ active_lesson[2] }}</h2>
-            <p><i class="fas fa-calendar-alt"></i> <strong>Дата:</strong> {{ active_lesson[1] }}</p>
-            <p><i class="fas fa-star"></i> <strong>Максимальный балл урока:</strong> {{ active_lesson[3] }}</p>
-
-            <h3><i class="fas fa-tasks"></i> Пункты урока:</h3>
-            <form method="POST" action="{{ url_for('add_lesson_item', lesson_id=active_lesson[0]) }}">
-                <input type="hidden" name="student_id" value="{{ student[0] }}">
-                <div class="form-group">
-                    <label for="item_name"><i class="fas fa-plus-circle"></i> Добавить новый пункт:</label>
-                    <input type="text" id="item_name" name="item_name" placeholder="Например: Устойчивые выражения" required>
-                </div>
-                <div class="form-group">
-                    <label for="item_max_score"><i class="fas fa-star-half-alt"></i> Максимальный балл для пункта:</label>
-                    <input type="number" id="item_max_score" name="item_max_score" min="1" value="5" required>
-                </div>
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-plus"></i> Добавить пункт
-                </button>
-            </form>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Пункт урока</th>
-                        <th>Баллы</th>
-                        <th>Заметки</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in lesson_items %}
-                    <tr class="{{ 'problem-item' if item[3] < item[4]/2 else 'good-item' }}">
-                        <td>
-                            {{ item[2] }}
-                            {% if item[3] < item[4]/2 %}
-                            <span class="badge badge-warning">Нужно повторить</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <input type="number" class="score-input" data-item-id="{{ item[0] }}"
-                                   value="{{ item[3] }}" min="0" max="{{ item[4] }}" step="0.5">
-                            <span> / {{ item[4] }}</span>
-                        </td>
-                        <td>
-                            <textarea class="notes-input" data-item-id="{{ item[0] }}">{{ item[5] or '' }}</textarea>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-
-            <form method="POST" action="{{ url_for('finish_lesson', lesson_id=active_lesson[0]) }}">
-                <input type="hidden" name="student_id" value="{{ student[0] }}">
-                <div class="form-group">
-                    <label for="homework"><i class="fas fa-book"></i> Домашнее задание:</label>
-                    <textarea id="homework" name="homework" rows="3" required
-                              placeholder="Что ученик должен подготовить к следующему уроку..."></textarea>
-                </div>
-
-                <div class="progress-container">
-                    <div class="progress-label">
-                        <span>Прогресс урока:</span>
-                        <span id="lesson-progress-text">0%</span>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar" id="lesson-progress-bar" style="width: 0%">0%</div>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите завершить урок?')">
-                        <i class="fas fa-check-circle"></i> Завершить урок
-                    </button>
-                    <a href="{{ url_for('student', student_id=student[0]) }}" class="btn">
-                        <i class="fas fa-times"></i> Отменить
-                    </a>
-                </div>
-            </form>
-        </div>
-        {% else %}
-        <!-- Форма для начала нового урока -->
-        <div class="lesson-section">
-            <h2><i class="fas fa-plus-circle"></i> Начать новый урок</h2>
-            <form method="POST" action="{{ url_for('add_lesson', student_id=student[0]) }}">
-                <div class="form-group">
-                    <label for="topic"><i class="fas fa-book-open"></i> Тема урока:</label>
-                    <input type="text" id="topic" name="topic" required placeholder="Например: Интервалы">
-                </div>
-                <div class="form-group">
-                    <label for="max_score"><i class="fas fa-star"></i> Максимальный балл урока:</label>
-                    <input type="number" id="max_score" name="max_score" min="1" value="10" required>
-                </div>
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-play"></i> Начать урок
-                </button>
-            </form>
-        </div>
-        {% endif %}
-
-        <!-- История завершенных уроков -->
-        <div class="lesson-section">
-            <h2><i class="fas fa-history"></i> История уроков</h2>
-
-            {% if finished_lessons %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Дата</th>
-                        <th>Тема</th>
-                        <th>Результат</th>
-                        <th>Комментарий</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for lesson in finished_lessons %}
-                    <tr>
-                        <td>{{ lesson[1] }}</td>
-                        <td>{{ lesson[2] }}</td>
-                        <td>
-                            <div class="progress-container">
-                                <div class="progress-label">
-                                    <span>{{ lesson[5] }}/{{ lesson[6] }} баллов</span>
-                                    <span>{{ "%.1f"|format(lesson[7]) }}%</span>
-                                </div>
-                                <div class="progress">
-                                    <div class="progress-bar" style="width: {{ lesson[7] }}%">
-                                        {{ "%.1f"|format(lesson[7]) }}%
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>{{ lesson[9] }}</td>
-                        <td>
-                            <a href="{{ url_for('lesson_details', lesson_id=lesson[0]) }}"
-                               class="btn btn-info" title="Подробнее">
-                                <i class="fas fa-info-circle"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div class="no-lessons">
-                <i class="fas fa-info-circle fa-2x"></i>
-                <p>Нет завершенных уроков</p>
+        <!-- Работа на уроке -->
+        <div class="grid-cell coins-container" onclick="showCoinSelector(this, 'participation', {{ lesson[0] }})">
+            <div class="coin-preview">
+                {% for _ in range(lesson[5]) %}🪙{% endfor %}
             </div>
-            {% endif %}
+            <div class="coins-selector" data-type="participation" data-lesson="{{ lesson[0] }}">
+                {% for n in range(6) %}
+                    <span class="coin-option" onclick="setCoins(this, {{ n }}, 'participation', {{ lesson[0] }}, {{ student[0] }})">{{ n }} 🪙</span>
+                {% endfor %}
+            </div>
         </div>
 
-        <a href="/" class="btn">
-            <i class="fas fa-arrow-left"></i> Назад к списку учеников
-        </a>
+        <!-- Домашнее задание -->
+        <div class="grid-cell">
+            <form onsubmit="saveHomework(event, {{ lesson[0] }}, {{ student[0] }})">
+                <textarea class="homework-input" placeholder="Введите ДЗ">{{ lesson[6] or '' }}</textarea>
+                <button type="submit" class="save-btn">Сохранить</button>
+            </form>
+        </div>
+        {% endfor %}
     </div>
 
     <script>
-        // Обновление баллов и заметок в реальном времени
-        document.querySelectorAll('.score-input, .notes-input').forEach(input => {
-            input.addEventListener('change', function() {
-                const itemId = this.dataset.itemId;
-                const field = this.classList.contains('score-input') ? 'score' : 'notes';
-                const value = this.value;
-
-                fetch(`/update_lesson_item/${itemId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        field: field,
-                        value: value
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Обновляем визуальное отображение
-                        const row = this.closest('tr');
-                        if (field === 'score') {
-                            const maxScore = parseInt(this.getAttribute('max'));
-                            const currentScore = parseFloat(value);
-
-                            // Обновляем классы строки
-                            if (currentScore < maxScore / 2) {
-                                row.classList.add('problem-item');
-                                row.classList.remove('good-item');
-                            } else {
-                                row.classList.add('good-item');
-                                row.classList.remove('problem-item');
-                            }
-
-                            // Обновляем общий прогресс урока
-                            updateLessonProgress();
-                        }
-                    }
-                });
-            });
-        });
-
-        // Функция для обновления прогресса урока
-        function updateLessonProgress() {
-            const scoreInputs = document.querySelectorAll('.score-input');
-            let totalEarned = 0;
-            let totalMax = 0;
-
-            scoreInputs.forEach(input => {
-                totalEarned += parseFloat(input.value) || 0;
-                totalMax += parseFloat(input.getAttribute('max')) || 0;
+        // Показываем селектор монеток
+        function showCoinSelector(element, type, lessonId) {
+            // Скрываем все другие селекторы
+            document.querySelectorAll('.coins-selector').forEach(sel => {
+                sel.classList.remove('active');
             });
 
-            const percentage = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0;
+            // Показываем текущий
+            const selector = element.querySelector('.coins-selector');
+            selector.classList.add('active');
 
-            const progressBar = document.getElementById('lesson-progress-bar');
-            const progressText = document.getElementById('lesson-progress-text');
-
-            if (progressBar && progressText) {
-                progressBar.style.width = `${percentage}%`;
-                progressBar.textContent = `${percentage}%`;
-                progressText.textContent = `${percentage}%`;
-
-                // Изменяем цвет в зависимости от прогресса
-                if (percentage < 50) {
-                    progressBar.style.backgroundColor = 'var(--danger-color)';
-                } else if (percentage < 80) {
-                    progressBar.style.backgroundColor = 'var(--warning-color)';
-                } else {
-                    progressBar.style.backgroundColor = 'var(--success-color)';
-                }
-            }
+            // Останавливаем всплытие, чтобы не срабатывали родительские обработчики
+            event.stopPropagation();
         }
 
-        // Инициализация прогресса при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
-            updateLessonProgress();
+        // Устанавливаем количество монеток
+        function setCoins(element, count, type, lessonId, studentId) {
+            const container = element.closest('.coins-container');
+            const preview = container.querySelector('.coin-preview');
+
+            // Обновляем превью
+            preview.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                preview.innerHTML += '🪙';
+            }
+
+            // Скрываем селектор
+            container.querySelector('.coins-selector').classList.remove('active');
+
+            // Отправляем на сервер
+            fetch(`/set_coins/${lessonId}/${type}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `coins=${count}&student_id=${studentId}`
+            });
+
+            event.stopPropagation();
+        }
+
+        // Сохраняем домашнее задание
+        function saveHomework(event, lessonId, studentId) {
+            event.preventDefault();
+            const form = event.target;
+            const homework = form.querySelector('textarea').value;
+
+            fetch(`/update_homework/${lessonId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `homework=${encodeURIComponent(homework)}&student_id=${studentId}`
+            }).then(() => {
+                alert('ДЗ сохранено!');
+            });
+        }
+
+        // Закрываем селекторы при клике вне их
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.coins-selector').forEach(sel => {
+                sel.classList.remove('active');
+            });
         });
     </script>
 </body>

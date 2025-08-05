@@ -1,63 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Учёт учеников</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Журнал успеваемости</title>
     <style>
-        body { font-family: Arial; margin: 20px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background-color: #f2f2f2; }
-        .btn { padding: 5px 10px; text-decoration: none; color: white; border-radius: 3px; }
-        .btn-primary { background: #4CAF50; }
-        .btn-danger { background: #f44336; }
-        .flash-message { padding: 10px; margin: 10px 0; border-radius: 3px; }
-        .flash-success { background: #dff0d8; color: #3c763d; }
-        .flash-error { background: #f2dede; color: #a94442; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .students-list {
+            margin: 20px 0;
+        }
+        .student-card {
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            cursor: pointer;
+        }
+        .student-card:hover {
+            background-color: #f0f0f0;
+        }
+        .add-student {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        input, button {
+            padding: 8px;
+            margin: 5px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <h1>Журнал учеников</h1>
+    <h1>Журнал успеваемости</h1>
 
-    <!-- Flash-сообщения -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message flash-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
-    <h2>Добавить ученика</h2>
-    <form method="POST" action="/add_student">
-        <input type="text" name="name" placeholder="Имя" required>
-        <input type="text" name="level" placeholder="Уровень (A1, B2...)">
-        <input type="date" name="start_date" placeholder="Дата начала">
-        <input type="text" name="goal" placeholder="Цель (например, 'Сдать IELTS')">
-        <button type="submit" class="btn btn-primary">Добавить</button>
-    </form>
-
-    <h2>Список учеников</h2>
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Имя</th>
-            <th>Уровень</th>
-            <th>Дата начала</th>
-            <th>Цель</th>
-            <th>Действия</th>
-        </tr>
+    <div class="students-list">
+        <h2>Список учеников</h2>
         {% for student in students %}
-        <tr>
-            <td>{{ student[0] }}</td>
-            <td>{{ student[1] }}</td>
-            <td>{{ student[2] }}</td>
-            <td>{{ student[3] }}</td>
-            <td>{{ student[4] }}</td>
-            <td>
-                <a href="/student/{{ student[0] }}" class="btn btn-primary">Открыть</a>
-            </td>
-        </tr>
+        <div class="student-card" onclick="window.location.href='/student/{{ student[0] }}'">
+            <h3>{{ student[1] }}</h3>
+            <p>Уровень: {{ student[2] or 'Не указан' }}</p>
+        </div>
         {% endfor %}
-    </table>
+    </div>
+
+    <div class="add-student">
+        <h2>Добавить нового ученика</h2>
+        <form action="/add_student" method="post">
+            <input type="text" name="name" placeholder="Имя ученика" required><br>
+            <input type="text" name="level" placeholder="Уровень"><br>
+            <input type="date" name="start_date" placeholder="Дата начала"><br>
+            <input type="text" name="goal" placeholder="Цель обучения"><br>
+            <button type="submit">Добавить ученика</button>
+        </form>
+    </div>
 </body>
 </html>
