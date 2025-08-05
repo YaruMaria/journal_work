@@ -1,104 +1,234 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from datetime import datetime
-from datetime import datetime
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import sqlite3
 import os
+from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'
+app.secret_key = 'your-secret-key-here'  # Замените на случайный ключ в продакшене
+app.config['SESSION_PERMANENT'] = False  # Сессия не будет постоянной
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Время жизни сессии
 
-
+# Инициализация базы данных
 def init_db():
     conn = sqlite3.connect("school.db")
     cursor = conn.cursor()
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS students (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            level TEXT,
-            start_date TEXT,
-            goal TEXT
-        )
-    """)
+    try:
+        # Создаем таблицу users первой
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                is_teacher BOOLEAN DEFAULT 0
+            )
+        """)
+        conn.commit()
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS lessons (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            student_id INTEGER NOT NULL,
-            date TEXT NOT NULL,
-            topic TEXT NOT NULL,
-            understanding INTEGER DEFAULT 0,
-            participation INTEGER DEFAULT 0,
-            homework TEXT,
-            FOREIGN KEY (student_id) REFERENCES students (id)
-        )
-    """)
-    cursor.execute("""
+        # Затем создаем остальные таблицы
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS students (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                level TEXT,
+                start_date TEXT,
+                goal TEXT,
+                teacher_id INTEGER,
+                FOREIGN KEY (teacher_id) REFERENCES users(id)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS lessons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                understanding INTEGER DEFAULT 0,
+                participation INTEGER DEFAULT 0,
+                homework TEXT,
+                FOREIGN KEY (student_id) REFERENCES students(id)
+            )
+        """)
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS monthly_awards (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 student_id INTEGER NOT NULL,
                 year INTEGER NOT NULL,
                 month INTEGER NOT NULL,
-                award INTEGER,  # 1 - золото, 2 - серебро, 3 - бронза, 4 - крест
-                FOREIGN KEY (student_id) REFERENCES students (id),
+                award INTEGER,
+                FOREIGN KEY (student_id) REFERENCES students(id),
                 UNIQUE(student_id, year, month)
             )
         """)
-    conn.commit()
-    conn.close()
 
+        conn.commit()
+        print("Все таблицы успешно созданы")
+    except sqlite3.Error as e:
+        print(f"Ошибка при создании таблиц: {e}")
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
-
-    conn.commit()
-    conn.close()
-
-
-if not os.path.exists('school.db'):
-    init_db()
-
-
-@app.route("/")
-def home():
+# Создание первого учителя
+def create_first_teacher():
     conn = sqlite3.connect("school.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM students")
+
+    try:
+        cursor.execute("SELECT * FROM users WHERE is_teacher = 1")
+        if not cursor.fetchone():
+            hashed_password = generate_password_hash("admin123")
+            cursor.execute(
+                "INSERT INTO users (username, password, is_teacher) VALUES (?, ?, 1)",
+                ("admin", hashed_password)
+            )
+            conn.commit()
+            print("Создан первый учитель: admin / admin123")
+    except sqlite3.Error as e:
+        print(f"Ошибка при создании первого учителя: {e}")
+        raise
+    finally:
+        conn.close()
+
+# Декораторы для проверки прав
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Пожалуйста, войдите для доступа к этой странице', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def teacher_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('is_teacher'):
+            flash('Эта функция доступна только учителям', 'error')
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Маршруты аутентификации
+@app.route('/')
+def index():
+    """Перенаправляет на вход, даже если пользователь был авторизован ранее"""
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Страница входа"""
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        conn = sqlite3.connect("school.db")
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user and check_password_hash(user[2], password):
+            session['user_id'] = user[0]
+            session['username'] = user[1]
+            session['is_teacher'] = bool(user[3])
+            flash('Вы успешно вошли в систему', 'success')
+            return redirect(url_for('home'))
+        else:
+            flash('Неверный логин или пароль', 'error')
+
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        is_teacher = 1 if request.form.get('is_teacher') else 0
+
+        if len(username) < 3:
+            flash('Логин должен содержать минимум 3 символа', 'error')
+        elif len(password) < 6:
+            flash('Пароль должен содержать минимум 6 символов', 'error')
+        elif password != confirm_password:
+            flash('Пароли не совпадают', 'error')
+        else:
+            hashed_password = generate_password_hash(password)
+
+            try:
+                conn = sqlite3.connect("school.db")
+                cursor = conn.cursor()
+                cursor.execute('INSERT INTO users (username, password, is_teacher) VALUES (?, ?, ?)',
+                               (username, hashed_password, is_teacher))
+                conn.commit()
+                conn.close()
+                flash('Регистрация успешна! Теперь войдите', 'success')
+                return redirect(url_for('login'))
+            except sqlite3.IntegrityError:
+                flash('Пользователь с таким именем уже существует', 'error')
+
+    return render_template('register.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Вы успешно вышли из системы', 'success')
+    return redirect(url_for('login'))
+
+# Основные маршруты
+@app.route("/home")
+@login_required
+def home():
+    """Страница 'Мои ученики'"""
+    conn = sqlite3.connect("school.db")
+    cursor = conn.cursor()
+
+    if session.get('is_teacher'):
+        cursor.execute("SELECT * FROM students WHERE teacher_id = ?", (session['user_id'],))
+    else:
+        cursor.execute("SELECT * FROM students LIMIT 0")
+
     students = cursor.fetchall()
     conn.close()
     return render_template("index.html", students=students)
 
-
-from datetime import datetime  # Убедитесь, что импорт есть в начале файла
-
-
 @app.route("/student/<int:student_id>")
+@login_required
 def student(student_id):
-    # Проверяем и создаем таблицы при необходимости
-    check_and_create_tables()
-
     conn = sqlite3.connect("school.db")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM students WHERE id = ?", (student_id,))
+    if session.get('is_teacher'):
+        cursor.execute("SELECT * FROM students WHERE id = ? AND teacher_id = ?",
+                       (student_id, session['user_id']))
+    else:
+        cursor.execute("SELECT * FROM students WHERE id = ?", (student_id,))
+
     student = cursor.fetchone()
 
     if not student:
         conn.close()
-        flash("Ученик не найден!", "error")
+        flash("Ученик не найден или у вас нет прав доступа", "error")
         return redirect(url_for("home"))
 
-    # Создаем 8 уроков, если их нет
-    cursor.execute("SELECT COUNT(*) FROM lessons WHERE student_id = ?", (student_id,))
-    lesson_count = cursor.fetchone()[0]
+    if session.get('is_teacher'):
+        cursor.execute("SELECT COUNT(*) FROM lessons WHERE student_id = ?", (student_id,))
+        lesson_count = cursor.fetchone()[0]
 
-    if lesson_count < 8:
-        for i in range(lesson_count + 1, 9):
-            cursor.execute(
-                "INSERT INTO lessons (student_id, date, topic) VALUES (?, ?, ?)",
-                (student_id, datetime.now().strftime("%Y-%m-%d"), f"Урок {i}")
-            )
-        conn.commit()
+        if lesson_count < 8:
+            for i in range(lesson_count + 1, 9):
+                cursor.execute(
+                    "INSERT INTO lessons (student_id, date, topic) VALUES (?, ?, ?)",
+                    (student_id, datetime.now().strftime("%Y-%m-%d"), f"Урок {i}")
+                )
+            conn.commit()
 
     cursor.execute("""
         SELECT id, student_id, date, topic, 
@@ -112,7 +242,6 @@ def student(student_id):
     """, (student_id,))
     lessons = cursor.fetchall()
 
-    # Получаем награды студента (теперь таблица точно существует)
     cursor.execute("SELECT year, month, award FROM monthly_awards WHERE student_id = ?", (student_id,))
     awards = {(year, month): award for year, month, award in cursor.fetchall()}
 
@@ -123,64 +252,52 @@ def student(student_id):
                            lessons=lessons,
                            awards=awards,
                            current_date=datetime.now(),
-                           relativedelta=relativedelta)  # Добавляем relativedelta в контекст
-
-
-@app.route("/student_old/<int:student_id>")
-def student_old(student_id):
-    conn = sqlite3.connect("school.db")
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM students WHERE id = ?", (student_id,))
-    student = cursor.fetchone()
-
-    if not student:
-        conn.close()
-        flash("Ученик не найден!", "error")
-        return redirect(url_for("home"))
-
-    cursor.execute("""
-        SELECT * FROM lessons 
-        WHERE student_id = ? 
-        ORDER BY date DESC
-        LIMIT 1
-    """, (student_id,))
-    active_lesson = cursor.fetchone()
-
-    conn.close()
-    return render_template("student_old.html", student=student, active_lesson=active_lesson)
-
+                           relativedelta=relativedelta)
 
 @app.route("/add_student", methods=["POST"])
+@login_required
+@teacher_required
 def add_student():
-    name = request.form["name"]
-    level = request.form.get("level", "")
-    start_date = request.form.get("start_date", "")
-    goal = request.form.get("goal", "")
+    name = request.form.get("name", "").strip()
+    level = request.form.get("level", "").strip()
+    start_date = request.form.get("start_date", "").strip()
+    goal = request.form.get("goal", "").strip()
 
+    errors = []
     if not name:
-        flash("Имя ученика обязательно!", "error")
+        errors.append("Имя ученика обязательно")
+    elif len(name) > 50:
+        errors.append("Имя слишком длинное (макс. 50 символов)")
+
+    if errors:
+        for error in errors:
+            flash(error, "error")
         return redirect(url_for("home"))
 
     conn = sqlite3.connect("school.db")
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT INTO students (name, level, start_date, goal) VALUES (?, ?, ?, ?)",
-            (name, level, start_date, goal)
+            "INSERT INTO students (name, level, start_date, goal, teacher_id) VALUES (?, ?, ?, ?, ?)",
+            (name, level if level else None,
+             start_date if start_date else None,
+             goal if goal else None,
+             session['user_id'])
         )
         conn.commit()
         flash("Ученик добавлен!", "success")
+    except sqlite3.IntegrityError:
+        flash("Ученик с таким именем уже существует", "error")
     except Exception as e:
-        conn.rollback()
         flash(f"Ошибка при добавлении ученика: {str(e)}", "error")
     finally:
         conn.close()
 
     return redirect(url_for("home"))
 
-
+# Остальные маршруты
 @app.route("/set_coins/<int:lesson_id>/<string:coin_type>", methods=["POST"])
+@login_required
 def set_coins(lesson_id, coin_type):
     if coin_type not in ['understanding', 'participation', 'homework']:
         return jsonify({'status': 'error', 'message': 'Invalid coin type'}), 400
@@ -192,16 +309,13 @@ def set_coins(lesson_id, coin_type):
     cursor = conn.cursor()
     try:
         if coin_type == 'homework':
-            # Сохраняем как строку, но только число (для совместимости)
             cursor.execute(
                 "UPDATE lessons SET homework = ? WHERE id = ?",
-                (str(coins), lesson_id)
-            )
+                (str(coins), lesson_id))
         else:
             cursor.execute(
                 f"UPDATE lessons SET {coin_type} = ? WHERE id = ?",
-                (coins, lesson_id)
-            )
+                (coins, lesson_id))
         conn.commit()
         return jsonify({'status': 'success'})
     except Exception as e:
@@ -210,8 +324,8 @@ def set_coins(lesson_id, coin_type):
     finally:
         conn.close()
 
-
 @app.route("/update_homework/<int:lesson_id>", methods=["POST"])
+@login_required
 def update_homework(lesson_id):
     homework = request.form.get("homework", "")
     student_id = request.form.get("student_id")
@@ -221,8 +335,7 @@ def update_homework(lesson_id):
     try:
         cursor.execute(
             "UPDATE lessons SET homework = ? WHERE id = ?",
-            (homework, lesson_id)
-        )
+            (homework, lesson_id))
         conn.commit()
         return jsonify({'status': 'success'})
     except Exception as e:
@@ -230,50 +343,23 @@ def update_homework(lesson_id):
         return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         conn.close()
-
-@app.route("/set_coins/<int:lesson_id>/homework", methods=["POST"])
-def set_homework_coins(lesson_id):
-    coins = int(request.form.get('coins', 0))
-    student_id = request.form.get('student_id')
-
-    conn = sqlite3.connect("school.db")
-    cursor = conn.cursor()
-    try:
-        cursor.execute(
-            "UPDATE lessons SET homework = ? WHERE id = ?",
-            (str(coins), lesson_id)  # Сохраняем как строку для совместимости
-        )
-        conn.commit()
-        return jsonify({'status': 'success'})
-    except Exception as e:
-        conn.rollback()
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        conn.close()
-
-
-from dateutil.relativedelta import relativedelta
-from datetime import datetime
-
 
 @app.route("/student/<int:student_id>/awards")
+@login_required
 def student_awards(student_id):
     current_date = datetime.now()
     selected_month = request.args.get('month', current_date.month, type=int)
     selected_year = request.args.get('year', current_date.year, type=int)
 
-    # Получаем информацию о студенте
     conn = sqlite3.connect("school.db")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM students WHERE id = ?", (student_id,))
     student = cursor.fetchone()
 
-    # Получаем награды студента
     cursor.execute("SELECT year, month, award FROM monthly_awards WHERE student_id = ?", (student_id,))
     awards = {(year, month): award for year, month, award in cursor.fetchall()}
     conn.close()
 
-    # Генерируем 6 месяцев для отображения (3 до и после выбранного)
     months = []
     for i in range(-3, 3):
         date = datetime(selected_year, selected_month, 1) + relativedelta(months=i)
@@ -286,14 +372,14 @@ def student_awards(student_id):
         })
 
     return render_template("awards.html",
-                           student=student,
-                           months=months,
-                           current_date=current_date,
-                           selected_month=selected_month,
-                           selected_year=selected_year)
-
+                         student=student,
+                         months=months,
+                         current_date=current_date,
+                         selected_month=selected_month,
+                         selected_year=selected_year)
 
 @app.route("/update_award", methods=["POST"])
+@login_required
 def update_award():
     student_id = request.form.get("student_id")
     year = int(request.form.get("year"))
@@ -316,29 +402,19 @@ def update_award():
     finally:
         conn.close()
 
-
-def check_and_create_tables():
-    conn = sqlite3.connect("school.db")
-    cursor = conn.cursor()
-
-    # Проверяем существование таблицы monthly_awards
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='monthly_awards'")
-    if not cursor.fetchone():
-        cursor.execute("""
-            CREATE TABLE monthly_awards (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                year INTEGER NOT NULL,
-                month INTEGER NOT NULL,
-                award INTEGER,
-                FOREIGN KEY (student_id) REFERENCES students (id),
-                UNIQUE(student_id, year, month)
-            )
-        """)
-        conn.commit()
-    conn.close()
-
-
 if __name__ == "__main__":
-    check_and_create_tables()
-    app.run(debug=True)
+    try:
+        # Инициализация БД
+        print("Инициализация базы данных...")
+        init_db()
+
+        # Создаем первого учителя
+        print("Создание первого учителя...")
+        create_first_teacher()
+
+        # Запуск приложения
+        print("Запуск приложения...")
+        app.run(debug=True)
+    except Exception as e:
+        print(f"Фатальная ошибка при запуске: {e}")
+        raise
