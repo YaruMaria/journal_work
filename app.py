@@ -2,8 +2,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from datetime import datetime
 import sqlite3
 import os
-
+from flask import Flask, render_template
 app = Flask(__name__)
+
+
 app.secret_key = 'your_secret_key_here'
 
 
@@ -393,6 +395,9 @@ def lesson_details(lesson_id):
 
     finally:
         conn.close()
+@app.route('/')
+def home():
+    return render_template('index.html')
 
 if __name__ == "__main__":
     app.run(debug=True)

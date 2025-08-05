@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# PyCharm
+.idea/
+*.iml
+
+# Данные и кэш
+*.sqlite3
+*.db
+*.cache
