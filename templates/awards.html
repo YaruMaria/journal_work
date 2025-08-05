@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Награды ученика</title>
+    <title>Награды {{ student[1] }}</title>
     <style>
         .month-slider {
             display: flex;
@@ -23,6 +23,9 @@
         .month-card.current {
             background: #e3f2fd;
             border: 2px solid #2196f3;
+        }
+        .month-card.selected {
+            border: 2px solid #4CAF50;
         }
         .award-options {
             display: flex;
@@ -53,28 +56,31 @@
             justify-content: space-between;
             margin: 20px 0;
         }
+        .award-preview {
+            font-size: 24px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>Награды ученика: {{ student[1] }}</h1>
-
     <div class="nav-buttons">
         <a href="{{ url_for('student', student_id=student[0]) }}">← Назад к ученику</a>
     </div>
 
+    <h1>Награды: {{ student[1] }}</h1>
+
     <div class="month-slider" id="monthSlider">
         {% for m in months %}
-        <div class="month-card {% if m.current %}current{% endif %}"
-             onclick="loadMonth({{ m.year }}, {{ m.month }}, {{ awards.get((m.year, m.month), 0 }})">
+        <div class="month-card {% if m.is_current %}current{% endif %} {% if m.award %}selected{% endif %}"
+             onclick="loadMonth({{ m.year }}, {{ m.month }}, {{ m.award if m.award else 'null' }})">
             <h3>{{ m.name }}</h3>
             <p>{{ m.year }}</p>
-            {% if (m.year, m.month) in awards %}
-                {% set award = awards[(m.year, m.month)] %}
-                <div style="font-size: 24px;">
-                    {% if award == 1 %}🏆{% endif %}
-                    {% if award == 2 %}🥈{% endif %}
-                    {% if award == 3 %}🥉{% endif %}
-                    {% if award == 4 %}❌{% endif %}
+            {% if m.award %}
+                <div class="award-preview">
+                    {% if m.award == 1 %}🏆{% endif %}
+                    {% if m.award == 2 %}🥈{% endif %}
+                    {% if m.award == 3 %}🥉{% endif %}
+                    {% if m.award == 4 %}❌{% endif %}
                 </div>
             {% endif %}
         </div>
@@ -93,18 +99,20 @@
 
     <script>
         let currentYear, currentMonth, currentAward;
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
 
         function loadMonth(year, month, award) {
             currentYear = year;
             currentMonth = month;
-            currentAward = award || 0;
+            currentAward = award || null;
 
             document.getElementById('selectedMonthTitle').textContent =
                 `Выбран месяц: ${monthName(month)} ${year}`;
 
             // Показываем блок выбора награды только для текущего месяца
-            const now = new Date();
-            const isCurrent = (year === now.getFullYear() && month === now.getMonth() + 1);
+            const isCurrent = (year === currentYear && month === currentMonth);
             document.getElementById('awardSelection').style.display = isCurrent ? 'block' : 'none';
 
             // Сбрасываем выделение
@@ -113,7 +121,7 @@
             });
 
             // Выделяем текущую награду, если есть
-            if (currentAward > 0) {
+            if (currentAward) {
                 document.querySelector(`.award-${currentAward}`).classList.add('selected-award');
             }
         }
@@ -148,10 +156,18 @@
             return names[month - 1];
         }
 
+        // Прокрутка месяцев
+        let scrollPosition = 0;
+        const slider = document.getElementById('monthSlider');
+
+        function scrollMonths(direction) {
+            scrollPosition += direction * 150;
+            slider.scrollTo({left: scrollPosition, behavior: 'smooth'});
+        }
+
         // Загружаем текущий месяц при открытии страницы
         window.onload = function() {
-            const now = new Date();
-            loadMonth(now.getFullYear(), now.getMonth() + 1, 0);
+            loadMonth(currentYear, currentMonth, null);
         };
     </script>
 </body>

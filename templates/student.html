@@ -13,11 +13,13 @@
             margin-bottom: 20px;
             padding: 15px;
             background-color: #f5f5f5;
+            border-radius: 5px;
         }
         .lessons-grid {
             display: grid;
             grid-template-columns: 100px repeat(3, 1fr);
             gap: 10px;
+            margin-bottom: 40px;
         }
         .grid-header {
             font-weight: bold;
@@ -59,9 +61,81 @@
             text-decoration: underline;
             cursor: pointer;
         }
-        .homework-coins {
+
+        /* Стили для секции наград */
+        .awards-section {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        .awards-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .month-slider {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 20px 0;
+            scroll-behavior: smooth;
+        }
+        .month-card {
+            min-width: 100px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #f5f5f5;
+            transition: all 0.3s;
+        }
+        .month-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .month-card.current {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+        .month-card.has-award {
+            border: 2px solid #4CAF50;
+        }
+        .award-preview {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+        .award-options {
             display: flex;
             justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .award-option {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+        }
+        .award-option:hover {
+            transform: scale(1.1);
+        }
+        .award-1 { background: gold; }
+        .award-2 { background: silver; }
+        .award-3 { background: #cd7f32; }
+        .award-4 { background: #ff6b6b; color: white; }
+        .selected-award {
+            border: 3px solid black;
+            transform: scale(1.1);
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
         }
     </style>
 </head>
@@ -69,6 +143,8 @@
     <div class="student-header">
         <h2>{{ student[1] }}</h2>
         <p>Уровень: {{ student[2] or 'Не указан' }}</p>
+        <p>Дата начала: {{ student[3] or 'Не указана' }}</p>
+        <p>Цель: {{ student[4] or 'Не указана' }}</p>
     </div>
 
     <div class="lessons-grid">
@@ -81,7 +157,7 @@
         <!-- Строки с уроками -->
         {% for lesson in lessons %}
         <div class="grid-cell lesson-number">
-            <a href="{{ url_for('student_old', student_id=student[0]) }}" class="lesson-link">{{ loop.index }}</a>
+            <span class="lesson-link">{{ loop.index }}</span>
         </div>
 
         <!-- Усвоение темы -->
@@ -108,9 +184,9 @@
             </div>
         </div>
 
-        <!-- Домашнее задание (теперь с монетками) -->
+        <!-- Домашнее задание -->
         <div class="grid-cell coins-container" onclick="showCoinSelector(this, 'homework', {{ lesson[0] }})">
-            <div class="coin-preview homework-coins">
+            <div class="coin-preview">
                 {% for _ in range(lesson[6]|int or 0) %}🪙{% endfor %}
             </div>
             <div class="coins-selector" data-type="homework" data-lesson="{{ lesson[0] }}">
@@ -122,37 +198,65 @@
         {% endfor %}
     </div>
 
+    <!-- Секция наград -->
+    <div class="awards-section">
+        <div class="awards-title">Награды по месяцам</div>
+
+        <div class="month-slider" id="monthSlider">
+            {% for i in range(-3, 3) %}
+                {% set month_date = current_date.replace(day=1) + relativedelta(months=i) %}
+                {% set has_award = awards.get((month_date.year, month_date.month)) %}
+                <div class="month-card {% if i == 0 %}current{% endif %} {% if has_award %}has-award{% endif %}"
+                     onclick="loadMonth({{ month_date.year }}, {{ month_date.month }}, {{ has_award if has_award else 'null' }})">
+                    <h3>{{ month_date.strftime('%B') }}</h3>
+                    <p>{{ month_date.year }}</p>
+                    {% if has_award %}
+                        <div class="award-preview">
+                            {% if has_award == 1 %}🏆{% endif %}
+                            {% if has_award == 2 %}🥈{% endif %}
+                            {% if has_award == 3 %}🥉{% endif %}
+                            {% if has_award == 4 %}❌{% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div id="awardSelection" style="display: none;">
+            <h3 id="selectedMonthTitle"></h3>
+            <div class="award-options">
+                <div class="award-option award-1" onclick="selectAward(1)">🏆</div>
+                <div class="award-option award-2" onclick="selectAward(2)">🥈</div>
+                <div class="award-option award-3" onclick="selectAward(3)">🥉</div>
+                <div class="award-option award-4" onclick="selectAward(4)">❌</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('home') }}">← Назад к списку учеников</a>
+    </div>
+
     <script>
-        // Показываем селектор монеток
+        // Обработка монеток для уроков
         function showCoinSelector(element, type, lessonId) {
-            // Скрываем все другие селекторы
             document.querySelectorAll('.coins-selector').forEach(sel => {
                 sel.classList.remove('active');
             });
-
-            // Показываем текущий
             const selector = element.querySelector('.coins-selector');
             selector.classList.add('active');
-
-            // Останавливаем всплытие, чтобы не срабатывали родительские обработчики
             event.stopPropagation();
         }
 
-        // Устанавливаем количество монеток
         function setCoins(element, count, type, lessonId, studentId) {
             const container = element.closest('.coins-container');
             const preview = container.querySelector('.coin-preview');
-
-            // Обновляем превью
             preview.innerHTML = '';
             for (let i = 0; i < count; i++) {
                 preview.innerHTML += '🪙';
             }
-
-            // Скрываем селектор
             container.querySelector('.coins-selector').classList.remove('active');
 
-            // Отправляем на сервер
             fetch(`/set_coins/${lessonId}/${type}`, {
                 method: 'POST',
                 headers: {
@@ -164,12 +268,68 @@
             event.stopPropagation();
         }
 
+        // Обработка наград по месяцам
+        let currentYear, currentMonth, currentAward;
+        const now = new Date();
+
+        function loadMonth(year, month, award) {
+            currentYear = year;
+            currentMonth = month;
+            currentAward = award;
+
+            document.getElementById('selectedMonthTitle').textContent =
+                `Выбран месяц: ${monthName(month)} ${year}`;
+
+            const isCurrent = (year === now.getFullYear() && month === now.getMonth() + 1);
+            document.getElementById('awardSelection').style.display = isCurrent ? 'block' : 'none';
+
+            document.querySelectorAll('.award-option').forEach(el => {
+                el.classList.remove('selected-award');
+            });
+
+            if (currentAward) {
+                document.querySelector(`.award-${currentAward}`).classList.add('selected-award');
+            }
+        }
+
+        function selectAward(award) {
+            currentAward = award;
+            document.querySelectorAll('.award-option').forEach(el => {
+                el.classList.remove('selected-award');
+            });
+            document.querySelector(`.award-${award}`).classList.add('selected-award');
+
+            fetch('/update_award', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `student_id={{ student[0] }}&year=${currentYear}&month=${currentMonth}&award=${award}`
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.status === 'success') {
+                      location.reload();
+                  }
+              });
+        }
+
+        function monthName(month) {
+            const names = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            return names[month - 1];
+        }
+
         // Закрываем селекторы при клике вне их
         document.addEventListener('click', function() {
             document.querySelectorAll('.coins-selector').forEach(sel => {
                 sel.classList.remove('active');
             });
         });
+
+        // Инициализация - загружаем текущий месяц
+        window.onload = function() {
+            loadMonth(now.getFullYear(), now.getMonth() + 1, null);
+        };
     </script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from datetime import datetime
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import sqlite3
 import os
 
@@ -33,6 +35,19 @@ def init_db():
             FOREIGN KEY (student_id) REFERENCES students (id)
         )
     """)
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS monthly_awards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                month INTEGER NOT NULL,
+                award INTEGER,  # 1 - золото, 2 - серебро, 3 - бронза, 4 - крест
+                FOREIGN KEY (student_id) REFERENCES students (id),
+                UNIQUE(student_id, year, month)
+            )
+        """)
+    conn.commit()
+    conn.close()
 
 
 
@@ -54,8 +69,14 @@ def home():
     return render_template("index.html", students=students)
 
 
+from datetime import datetime  # Убедитесь, что импорт есть в начале файла
+
+
 @app.route("/student/<int:student_id>")
 def student(student_id):
+    # Проверяем и создаем таблицы при необходимости
+    check_and_create_tables()
+
     conn = sqlite3.connect("school.db")
     cursor = conn.cursor()
 
@@ -79,7 +100,6 @@ def student(student_id):
             )
         conn.commit()
 
-    # Исправленный запрос с обработкой homework
     cursor.execute("""
         SELECT id, student_id, date, topic, 
                COALESCE(understanding, 0) as understanding,
@@ -92,8 +112,18 @@ def student(student_id):
     """, (student_id,))
     lessons = cursor.fetchall()
 
+    # Получаем награды студента (теперь таблица точно существует)
+    cursor.execute("SELECT year, month, award FROM monthly_awards WHERE student_id = ?", (student_id,))
+    awards = {(year, month): award for year, month, award in cursor.fetchall()}
+
     conn.close()
-    return render_template("student.html", student=student, lessons=lessons)
+
+    return render_template("student.html",
+                           student=student,
+                           lessons=lessons,
+                           awards=awards,
+                           current_date=datetime.now(),
+                           relativedelta=relativedelta)  # Добавляем relativedelta в контекст
 
 
 @app.route("/student_old/<int:student_id>")
@@ -222,5 +252,93 @@ def set_homework_coins(lesson_id):
         conn.close()
 
 
+from dateutil.relativedelta import relativedelta
+from datetime import datetime
+
+
+@app.route("/student/<int:student_id>/awards")
+def student_awards(student_id):
+    current_date = datetime.now()
+    selected_month = request.args.get('month', current_date.month, type=int)
+    selected_year = request.args.get('year', current_date.year, type=int)
+
+    # Получаем информацию о студенте
+    conn = sqlite3.connect("school.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM students WHERE id = ?", (student_id,))
+    student = cursor.fetchone()
+
+    # Получаем награды студента
+    cursor.execute("SELECT year, month, award FROM monthly_awards WHERE student_id = ?", (student_id,))
+    awards = {(year, month): award for year, month, award in cursor.fetchall()}
+    conn.close()
+
+    # Генерируем 6 месяцев для отображения (3 до и после выбранного)
+    months = []
+    for i in range(-3, 3):
+        date = datetime(selected_year, selected_month, 1) + relativedelta(months=i)
+        months.append({
+            'year': date.year,
+            'month': date.month,
+            'name': date.strftime('%B'),
+            'is_current': (date.year == current_date.year and date.month == current_date.month),
+            'award': awards.get((date.year, date.month))
+        })
+
+    return render_template("awards.html",
+                           student=student,
+                           months=months,
+                           current_date=current_date,
+                           selected_month=selected_month,
+                           selected_year=selected_year)
+
+
+@app.route("/update_award", methods=["POST"])
+def update_award():
+    student_id = request.form.get("student_id")
+    year = int(request.form.get("year"))
+    month = int(request.form.get("month"))
+    award = int(request.form.get("award"))
+
+    conn = sqlite3.connect("school.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT OR REPLACE INTO monthly_awards 
+            (student_id, year, month, award) 
+            VALUES (?, ?, ?, ?)
+        """, (student_id, year, month, award))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+def check_and_create_tables():
+    conn = sqlite3.connect("school.db")
+    cursor = conn.cursor()
+
+    # Проверяем существование таблицы monthly_awards
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='monthly_awards'")
+    if not cursor.fetchone():
+        cursor.execute("""
+            CREATE TABLE monthly_awards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                month INTEGER NOT NULL,
+                award INTEGER,
+                FOREIGN KEY (student_id) REFERENCES students (id),
+                UNIQUE(student_id, year, month)
+            )
+        """)
+        conn.commit()
+    conn.close()
+
+
 if __name__ == "__main__":
+    check_and_create_tables()
     app.run(debug=True)
