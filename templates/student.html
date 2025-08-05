@@ -4,112 +4,213 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ student[1] }} - Ученик</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .student-header {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f5f5f5;
-            border-radius: 5px;
-        }
-        .lessons-grid {
-            display: grid;
-            grid-template-columns: 100px repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 40px;
-        }
-        .grid-header {
-            font-weight: bold;
-            padding: 10px;
-            background-color: #e0e0e0;
-            text-align: center;
-        }
-        .grid-cell {
-            padding: 15px;
-            border: 1px solid #ddd;
-            min-height: 60px;
-        }
-        .lesson-number {
-            font-weight: bold;
-            text-align: center;
-        }
-        .coins-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .coins-selector {
-            margin-top: 10px;
-            display: none;
-        }
-        .coins-selector.active {
-            display: block;
-        }
-        .coin-preview {
-            font-size: 24px;
-            margin: 5px 0;
-        }
-        .coin-option {
-            margin: 0 5px;
-            cursor: pointer;
-        }
-        .lesson-link {
-            color: blue;
-            text-decoration: underline;
-            cursor: pointer;
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #e0e7ff;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --gray: #9ca3af;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
         }
 
-        /* Стили для секции наград */
-        .awards-section {
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: var(--dark);
+            margin: 0;
+            padding: 20px;
         }
-        .awards-title {
-            font-size: 1.5em;
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
             margin-bottom: 20px;
-            color: #333;
+            font-weight: 500;
         }
+
+        .student-header {
+            background-color: var(--light);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .student-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+
+        .student-info {
+            display: flex;
+            gap: 16px;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lessons-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .grid-header {
+            font-weight: 600;
+            padding: 12px;
+            background-color: var(--light);
+            text-align: center;
+            border-radius: 6px;
+        }
+
+        .grid-cell {
+            padding: 16px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        .lesson-number {
+            font-weight: 600;
+            text-align: center;
+            font-size: 18px;
+            color: var(--primary);
+        }
+
+        .coins-display {
+            font-size: 24px;
+            min-height: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+        }
+
+        .coins-selector {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px;
+            z-index: 10;
+        }
+
+        .grid-cell:hover .coins-selector {
+            display: flex;
+        }
+
+        .coin-option {
+            padding: 6px 10px;
+            border-radius: 6px;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .coin-option:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .awards-section {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .awards-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
         .month-slider {
             display: flex;
+            gap: 16px;
+            padding: 16px 0;
             overflow-x: auto;
-            gap: 15px;
-            padding: 20px 0;
-            scroll-behavior: smooth;
         }
+
         .month-card {
             min-width: 100px;
             text-align: center;
-            padding: 10px;
-            border-radius: 10px;
+            padding: 16px 12px;
+            border-radius: 8px;
             cursor: pointer;
-            background: #f5f5f5;
-            transition: all 0.3s;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s;
         }
+
         .month-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+
         .month-card.current {
-            background: #e3f2fd;
-            border: 2px solid #2196f3;
+            background-color: var(--primary-light);
+            border: 1px solid var(--primary);
         }
+
         .month-card.has-award {
-            border: 2px solid #4CAF50;
+            border: 1px solid var(--success);
         }
+
         .award-preview {
-            font-size: 24px;
-            margin-top: 10px;
+            font-size: 28px;
+            margin-top: 8px;
         }
+
         .award-options {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 16px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
+
         .award-option {
             width: 50px;
             height: 50px;
@@ -118,144 +219,160 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 24px;
             transition: all 0.2s;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .award-option:hover {
             transform: scale(1.1);
         }
-        .award-1 { background: gold; }
-        .award-2 { background: silver; }
-        .award-3 { background: #cd7f32; }
-        .award-4 { background: #ff6b6b; color: white; }
+
+        .award-1 { background: linear-gradient(135deg, gold 0%, #f5d742 100%); }
+        .award-2 { background: linear-gradient(135deg, silver 0%, #c0c0c0 100%); }
+        .award-3 { background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%); }
+        .award-4 { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+
         .selected-award {
-            border: 3px solid black;
             transform: scale(1.1);
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
-        .nav-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin: 20px 0;
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="student-header">
-        <h2>{{ student[1] }}</h2>
-        <p>Уровень: {{ student[2] or 'Не указан' }}</p>
-        <p>Дата начала: {{ student[3] or 'Не указана' }}</p>
-        <p>Цель: {{ student[4] or 'Не указана' }}</p>
-    </div>
+    <div class="container">
+        <a href="{{ url_for('home') }}" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Назад к списку учеников
+        </a>
 
-    <div class="lessons-grid">
-        <!-- Заголовки столбцов -->
-        <div class="grid-header">Урок</div>
-        <div class="grid-header">Усвоение темы</div>
-        <div class="grid-header">Работа на уроке</div>
-        <div class="grid-header">Домашнее задание</div>
-
-        <!-- Строки с уроками -->
-        {% for lesson in lessons %}
-        <div class="grid-cell lesson-number">
-            <span class="lesson-link">{{ loop.index }}</span>
-        </div>
-
-        <!-- Усвоение темы -->
-        <div class="grid-cell coins-container" onclick="showCoinSelector(this, 'understanding', {{ lesson[0] }})">
-            <div class="coin-preview">
-                {% for _ in range(lesson[4]) %}🪙{% endfor %}
-            </div>
-            <div class="coins-selector" data-type="understanding" data-lesson="{{ lesson[0] }}">
-                {% for n in range(6) %}
-                    <span class="coin-option" onclick="setCoins(this, {{ n }}, 'understanding', {{ lesson[0] }}, {{ student[0] }})">{{ n }} 🪙</span>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Работа на уроке -->
-        <div class="grid-cell coins-container" onclick="showCoinSelector(this, 'participation', {{ lesson[0] }})">
-            <div class="coin-preview">
-                {% for _ in range(lesson[5]) %}🪙{% endfor %}
-            </div>
-            <div class="coins-selector" data-type="participation" data-lesson="{{ lesson[0] }}">
-                {% for n in range(6) %}
-                    <span class="coin-option" onclick="setCoins(this, {{ n }}, 'participation', {{ lesson[0] }}, {{ student[0] }})">{{ n }} 🪙</span>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Домашнее задание -->
-        <div class="grid-cell coins-container" onclick="showCoinSelector(this, 'homework', {{ lesson[0] }})">
-            <div class="coin-preview">
-                {% for _ in range(lesson[6]|int or 0) %}🪙{% endfor %}
-            </div>
-            <div class="coins-selector" data-type="homework" data-lesson="{{ lesson[0] }}">
-                {% for n in range(6) %}
-                    <span class="coin-option" onclick="setCoins(this, {{ n }}, 'homework', {{ lesson[0] }}, {{ student[0] }})">{{ n }} 🪙</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- Секция наград -->
-    <div class="awards-section">
-        <div class="awards-title">Награды по месяцам</div>
-
-        <div class="month-slider" id="monthSlider">
-            {% for i in range(-3, 3) %}
-                {% set month_date = current_date.replace(day=1) + relativedelta(months=i) %}
-                {% set has_award = awards.get((month_date.year, month_date.month)) %}
-                <div class="month-card {% if i == 0 %}current{% endif %} {% if has_award %}has-award{% endif %}"
-                     onclick="loadMonth({{ month_date.year }}, {{ month_date.month }}, {{ has_award if has_award else 'null' }})">
-                    <h3>{{ month_date.strftime('%B') }}</h3>
-                    <p>{{ month_date.year }}</p>
-                    {% if has_award %}
-                        <div class="award-preview">
-                            {% if has_award == 1 %}🏆{% endif %}
-                            {% if has_award == 2 %}🥈{% endif %}
-                            {% if has_award == 3 %}🥉{% endif %}
-                            {% if has_award == 4 %}❌{% endif %}
-                        </div>
-                    {% endif %}
+        <div class="student-header">
+            <h1 class="student-name">{{ student[1] }}</h1>
+            <div class="student-info">
+                <div class="info-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>{{ student[2] or 'Не указан' }}</span>
                 </div>
+                <div class="info-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>{{ student[3] or 'Не указана' }}</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-bullseye"></i>
+                    <span>{{ student[4] or 'Не указана' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="lessons-grid">
+            <!-- Заголовки столбцов -->
+            <div class="grid-header">Урок</div>
+            <div class="grid-header">Усвоение темы</div>
+            <div class="grid-header">Работа на уроке</div>
+            <div class="grid-header">Домашнее задание</div>
+
+            <!-- Строки с уроками -->
+            {% for lesson in lessons %}
+            <div class="grid-cell lesson-number">
+                {{ loop.index }}
+            </div>
+
+            <!-- Усвоение темы -->
+            <div class="grid-cell">
+                <div class="coins-display" id="understanding-display-{{ lesson[0] }}">
+                    {% for _ in range(lesson[4]) %}🪙{% endfor %}
+                </div>
+                <div class="coins-selector" data-type="understanding" data-lesson="{{ lesson[0] }}">
+                    {% for n in range(6) %}
+                        <span class="coin-option" onclick="setCoins(this, {{ n }}, 'understanding', {{ lesson[0] }}, {{ student[0] }})">
+                            {{ n }} 🪙
+                        </span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Работа на уроке -->
+            <div class="grid-cell">
+                <div class="coins-display" id="participation-display-{{ lesson[0] }}">
+                    {% for _ in range(lesson[5]) %}🪙{% endfor %}
+                </div>
+                <div class="coins-selector" data-type="participation" data-lesson="{{ lesson[0] }}">
+                    {% for n in range(6) %}
+                        <span class="coin-option" onclick="setCoins(this, {{ n }}, 'participation', {{ lesson[0] }}, {{ student[0] }})">
+                            {{ n }} 🪙
+                        </span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Домашнее задание -->
+            <div class="grid-cell">
+                <div class="coins-display" id="homework-display-{{ lesson[0] }}">
+                    {% for _ in range(lesson[6]|int or 0) %}🪙{% endfor %}
+                </div>
+                <div class="coins-selector" data-type="homework" data-lesson="{{ lesson[0] }}">
+                    {% for n in range(6) %}
+                        <span class="coin-option" onclick="setCoins(this, {{ n }}, 'homework', {{ lesson[0] }}, {{ student[0] }})">
+                            {{ n }} 🪙
+                        </span>
+                    {% endfor %}
+                </div>
+            </div>
             {% endfor %}
         </div>
 
-        <div id="awardSelection" style="display: none;">
-            <h3 id="selectedMonthTitle"></h3>
-            <div class="award-options">
-                <div class="award-option award-1" onclick="selectAward(1)">🏆</div>
-                <div class="award-option award-2" onclick="selectAward(2)">🥈</div>
-                <div class="award-option award-3" onclick="selectAward(3)">🥉</div>
-                <div class="award-option award-4" onclick="selectAward(4)">❌</div>
+        <!-- Секция наград -->
+        <div class="awards-section">
+            <h2 class="awards-title">
+                <i class="fas fa-trophy"></i>
+                Награды по месяцам
+            </h2>
+
+            <div class="month-slider" id="monthSlider">
+                {% for i in range(-3, 3) %}
+                    {% set month_date = current_date.replace(day=1) + relativedelta(months=i) %}
+                    {% set has_award = awards.get((month_date.year, month_date.month)) %}
+                    <div class="month-card {% if i == 0 %}current{% endif %} {% if has_award %}has-award{% endif %}"
+                         onclick="loadMonth({{ month_date.year }}, {{ month_date.month }}, {{ has_award if has_award else 'null' }})">
+                        <h3>{{ month_date.strftime('%B') }}</h3>
+                        <p>{{ month_date.year }}</p>
+                        {% if has_award %}
+                            <div class="award-preview">
+                                {% if has_award == 1 %}🏆{% endif %}
+                                {% if has_award == 2 %}🥈{% endif %}
+                                {% if has_award == 3 %}🥉{% endif %}
+                                {% if has_award == 4 %}❌{% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div id="awardSelection" class="hidden">
+                <h3 id="selectedMonthTitle" style="text-align: center; margin-bottom: 16px;"></h3>
+                <div class="award-options">
+                    <div class="award-option award-1" onclick="selectAward(1)">🏆</div>
+                    <div class="award-option award-2" onclick="selectAward(2)">🥈</div>
+                    <div class="award-option award-3" onclick="selectAward(3)">🥉</div>
+                    <div class="award-option award-4" onclick="selectAward(4)">❌</div>
+                </div>
             </div>
         </div>
-    </div>
-
-    <div style="margin-top: 20px;">
-        <a href="{{ url_for('home') }}">← Назад к списку учеников</a>
     </div>
 
     <script>
         // Обработка монеток для уроков
-        function showCoinSelector(element, type, lessonId) {
-            document.querySelectorAll('.coins-selector').forEach(sel => {
-                sel.classList.remove('active');
-            });
-            const selector = element.querySelector('.coins-selector');
-            selector.classList.add('active');
-            event.stopPropagation();
-        }
-
         function setCoins(element, count, type, lessonId, studentId) {
-            const container = element.closest('.coins-container');
-            const preview = container.querySelector('.coin-preview');
-            preview.innerHTML = '';
+            const display = document.getElementById(`${type}-display-${lessonId}`);
+            display.innerHTML = '';
             for (let i = 0; i < count; i++) {
-                preview.innerHTML += '🪙';
+                display.innerHTML += '🪙';
             }
-            container.querySelector('.coins-selector').classList.remove('active');
 
             fetch(`/set_coins/${lessonId}/${type}`, {
                 method: 'POST',
@@ -265,7 +382,8 @@
                 body: `coins=${count}&student_id=${studentId}`
             });
 
-            event.stopPropagation();
+            // Закрываем выпадающий список после выбора
+            element.closest('.coins-selector').style.display = 'none';
         }
 
         // Обработка наград по месяцам
@@ -281,7 +399,8 @@
                 `Выбран месяц: ${monthName(month)} ${year}`;
 
             const isCurrent = (year === now.getFullYear() && month === now.getMonth() + 1);
-            document.getElementById('awardSelection').style.display = isCurrent ? 'block' : 'none';
+            const awardSelection = document.getElementById('awardSelection');
+            awardSelection.style.display = isCurrent ? 'block' : 'none';
 
             document.querySelectorAll('.award-option').forEach(el => {
                 el.classList.remove('selected-award');
@@ -318,13 +437,6 @@
                           'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
             return names[month - 1];
         }
-
-        // Закрываем селекторы при клике вне их
-        document.addEventListener('click', function() {
-            document.querySelectorAll('.coins-selector').forEach(sel => {
-                sel.classList.remove('active');
-            });
-        });
 
         // Инициализация - загружаем текущий месяц
         window.onload = function() {
