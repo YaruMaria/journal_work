@@ -34,6 +34,8 @@ def init_db():
         )
     """)
 
+
+
     conn.commit()
     conn.close()
 
@@ -77,11 +79,12 @@ def student(student_id):
             )
         conn.commit()
 
+    # Исправленный запрос с обработкой homework
     cursor.execute("""
         SELECT id, student_id, date, topic, 
                COALESCE(understanding, 0) as understanding,
                COALESCE(participation, 0) as participation,
-               homework
+               COALESCE(NULLIF(homework, ''), '0') as homework
         FROM lessons 
         WHERE student_id = ? 
         ORDER BY id ASC
@@ -149,7 +152,7 @@ def add_student():
 
 @app.route("/set_coins/<int:lesson_id>/<string:coin_type>", methods=["POST"])
 def set_coins(lesson_id, coin_type):
-    if coin_type not in ['understanding', 'participation']:
+    if coin_type not in ['understanding', 'participation', 'homework']:
         return jsonify({'status': 'error', 'message': 'Invalid coin type'}), 400
 
     coins = int(request.form.get('coins', 0))
@@ -158,10 +161,17 @@ def set_coins(lesson_id, coin_type):
     conn = sqlite3.connect("school.db")
     cursor = conn.cursor()
     try:
-        cursor.execute(
-            f"UPDATE lessons SET {coin_type} = ? WHERE id = ?",
-            (coins, lesson_id)
-        )
+        if coin_type == 'homework':
+            # Сохраняем как строку, но только число (для совместимости)
+            cursor.execute(
+                "UPDATE lessons SET homework = ? WHERE id = ?",
+                (str(coins), lesson_id)
+            )
+        else:
+            cursor.execute(
+                f"UPDATE lessons SET {coin_type} = ? WHERE id = ?",
+                (coins, lesson_id)
+            )
         conn.commit()
         return jsonify({'status': 'success'})
     except Exception as e:
@@ -182,6 +192,26 @@ def update_homework(lesson_id):
         cursor.execute(
             "UPDATE lessons SET homework = ? WHERE id = ?",
             (homework, lesson_id)
+        )
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route("/set_coins/<int:lesson_id>/homework", methods=["POST"])
+def set_homework_coins(lesson_id):
+    coins = int(request.form.get('coins', 0))
+    student_id = request.form.get('student_id')
+
+    conn = sqlite3.connect("school.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE lessons SET homework = ? WHERE id = ?",
+            (str(coins), lesson_id)  # Сохраняем как строку для совместимости
         )
         conn.commit()
         return jsonify({'status': 'success'})

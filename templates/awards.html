@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Награды ученика</title>
+    <style>
+        .month-slider {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 20px 0;
+            scroll-behavior: smooth;
+        }
+        .month-card {
+            min-width: 100px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #f5f5f5;
+        }
+        .month-card.current {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+        .award-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .award-option {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .award-1 { background: gold; }
+        .award-2 { background: silver; }
+        .award-3 { background: #cd7f32; } /* бронза */
+        .award-4 { background: #ff6b6b; color: white; }
+        .selected-award {
+            border: 3px solid black;
+            transform: scale(1.1);
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Награды ученика: {{ student[1] }}</h1>
+
+    <div class="nav-buttons">
+        <a href="{{ url_for('student', student_id=student[0]) }}">← Назад к ученику</a>
+    </div>
+
+    <div class="month-slider" id="monthSlider">
+        {% for m in months %}
+        <div class="month-card {% if m.current %}current{% endif %}"
+             onclick="loadMonth({{ m.year }}, {{ m.month }}, {{ awards.get((m.year, m.month), 0 }})">
+            <h3>{{ m.name }}</h3>
+            <p>{{ m.year }}</p>
+            {% if (m.year, m.month) in awards %}
+                {% set award = awards[(m.year, m.month)] %}
+                <div style="font-size: 24px;">
+                    {% if award == 1 %}🏆{% endif %}
+                    {% if award == 2 %}🥈{% endif %}
+                    {% if award == 3 %}🥉{% endif %}
+                    {% if award == 4 %}❌{% endif %}
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="awardSelection" style="display: none;">
+        <h2 id="selectedMonthTitle"></h2>
+        <div class="award-options">
+            <div class="award-option award-1" onclick="selectAward(1)">🏆</div>
+            <div class="award-option award-2" onclick="selectAward(2)">🥈</div>
+            <div class="award-option award-3" onclick="selectAward(3)">🥉</div>
+            <div class="award-option award-4" onclick="selectAward(4)">❌</div>
+        </div>
+    </div>
+
+    <script>
+        let currentYear, currentMonth, currentAward;
+
+        function loadMonth(year, month, award) {
+            currentYear = year;
+            currentMonth = month;
+            currentAward = award || 0;
+
+            document.getElementById('selectedMonthTitle').textContent =
+                `Выбран месяц: ${monthName(month)} ${year}`;
+
+            // Показываем блок выбора награды только для текущего месяца
+            const now = new Date();
+            const isCurrent = (year === now.getFullYear() && month === now.getMonth() + 1);
+            document.getElementById('awardSelection').style.display = isCurrent ? 'block' : 'none';
+
+            // Сбрасываем выделение
+            document.querySelectorAll('.award-option').forEach(el => {
+                el.classList.remove('selected-award');
+            });
+
+            // Выделяем текущую награду, если есть
+            if (currentAward > 0) {
+                document.querySelector(`.award-${currentAward}`).classList.add('selected-award');
+            }
+        }
+
+        function selectAward(award) {
+            currentAward = award;
+
+            // Обновляем выделение
+            document.querySelectorAll('.award-option').forEach(el => {
+                el.classList.remove('selected-award');
+            });
+            document.querySelector(`.award-${award}`).classList.add('selected-award');
+
+            // Сохраняем в базу
+            fetch('/update_award', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `student_id={{ student[0] }}&year=${currentYear}&month=${currentMonth}&award=${award}`
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.status === 'success') {
+                      location.reload(); // Обновляем страницу, чтобы показать новую награду
+                  }
+              });
+        }
+
+        function monthName(month) {
+            const names = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            return names[month - 1];
+        }
+
+        // Загружаем текущий месяц при открытии страницы
+        window.onload = function() {
+            const now = new Date();
+            loadMonth(now.getFullYear(), now.getMonth() + 1, 0);
+        };
+    </script>
+</body>
+</html>

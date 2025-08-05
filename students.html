@@ -1,0 +1,86 @@
+<!-- Добавьте этот раздел в student.html после отображения уроков -->
+<div class="calendar-section">
+    <h2>Кубки по месяцам</h2>
+    <div class="months-grid">
+        {% for month_num, month_name in months %}
+        <div class="month-card">
+            <h3>{{ month_name }} {{ current_year }}</h3>
+            <div class="trophy-selector">
+                <button class="trophy-btn {% if trophies.get((current_year, month_num)) == 1 %}active{% endif %}"
+                        data-month="{{ month_num }}" data-trophy="1">
+                    🏆 (Золото)
+                </button>
+                <button class="trophy-btn {% if trophies.get((current_year, month_num)) == 2 %}active{% endif %}"
+                        data-month="{{ month_num }}" data-trophy="2">
+                    🥈 (Серебро)
+                </button>
+                <button class="trophy-btn {% if trophies.get((current_year, month_num)) == 3 %}active{% endif %}"
+                        data-month="{{ month_num }}" data-trophy="3">
+                    🥉 (Бронза)
+                </button>
+                <button class="trophy-btn {% if trophies.get((current_year, month_num)) == 4 %}active{% endif %}"
+                        data-month="{{ month_num }}" data-trophy="4">
+                    ❌ (Нет)
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.months-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+}
+.month-card {
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 8px;
+}
+.trophy-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 10px;
+}
+.trophy-btn {
+    padding: 5px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.trophy-btn.active {
+    background: #e0f7fa;
+    border-color: #00bcd4;
+}
+</style>
+
+<script>
+document.querySelectorAll('.trophy-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const month = this.dataset.month;
+        const trophy = this.dataset.trophy;
+
+        // Удаляем active class у всех кнопок в этой группе
+        this.parentNode.querySelectorAll('.trophy-btn').forEach(b => {
+            b.classList.remove('active');
+        });
+
+        // Добавляем active class к выбранной кнопке
+        this.classList.add('active');
+
+        // Отправляем данные на сервер
+        fetch('/update_trophy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `student_id={{ student[0] }}&year={{ current_year }}&month=${month}&trophy=${trophy}`
+        });
+    });
+});
+</script>

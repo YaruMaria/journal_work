@@ -54,23 +54,14 @@
             margin: 0 5px;
             cursor: pointer;
         }
-        .homework-input {
-            width: 100%;
-            min-height: 60px;
-            padding: 8px;
-        }
-        .save-btn {
-            margin-top: 5px;
-            padding: 5px 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
         .lesson-link {
             color: blue;
             text-decoration: underline;
             cursor: pointer;
+        }
+        .homework-coins {
+            display: flex;
+            justify-content: center;
         }
     </style>
 </head>
@@ -117,12 +108,16 @@
             </div>
         </div>
 
-        <!-- Домашнее задание -->
-        <div class="grid-cell">
-            <form onsubmit="saveHomework(event, {{ lesson[0] }}, {{ student[0] }})">
-                <textarea class="homework-input" placeholder="Введите ДЗ">{{ lesson[6] or '' }}</textarea>
-                <button type="submit" class="save-btn">Сохранить</button>
-            </form>
+        <!-- Домашнее задание (теперь с монетками) -->
+        <div class="grid-cell coins-container" onclick="showCoinSelector(this, 'homework', {{ lesson[0] }})">
+            <div class="coin-preview homework-coins">
+                {% for _ in range(lesson[6]|int or 0) %}🪙{% endfor %}
+            </div>
+            <div class="coins-selector" data-type="homework" data-lesson="{{ lesson[0] }}">
+                {% for n in range(6) %}
+                    <span class="coin-option" onclick="setCoins(this, {{ n }}, 'homework', {{ lesson[0] }}, {{ student[0] }})">{{ n }} 🪙</span>
+                {% endfor %}
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -167,23 +162,6 @@
             });
 
             event.stopPropagation();
-        }
-
-        // Сохраняем домашнее задание
-        function saveHomework(event, lessonId, studentId) {
-            event.preventDefault();
-            const form = event.target;
-            const homework = form.querySelector('textarea').value;
-
-            fetch(`/update_homework/${lessonId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `homework=${encodeURIComponent(homework)}&student_id=${studentId}`
-            }).then(() => {
-                alert('ДЗ сохранено!');
-            });
         }
 
         // Закрываем селекторы при клике вне их
