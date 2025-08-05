@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Детали урока</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .header { background-color: #f5f5f5; padding: 15px; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #4a76a8; color: white; }
+        .problem-item { background-color: #ffebee; }
+        .good-item { background-color: #e8f5e9; }
+        .progress { height: 20px; background-color: #e9ecef; border-radius: 4px; }
+        .progress-bar {
+            height: 100%;
+            background-color: #5cb85c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Детали урока</h1>
+        <p><strong>Ученик:</strong> {{ lesson.student_name }}</p>
+        <p><strong>Дата:</strong> {{ lesson.date }}</p>
+        <p><strong>Тема:</strong> {{ lesson.topic }}</p>
+        <p><strong>Итог:</strong> {{ lesson.total_earned }}/{{ lesson.total_max }}
+           ({{ "%.1f"|format(lesson.percentage) }}%)</p>
+        <p><strong>Комментарий:</strong> {{ lesson.comment }}</p>
+        <p><strong>Домашнее задание:</strong> {{ lesson.homework }}</p>
+    </div>
+
+    <h2>Результаты по пунктам:</h2>
+    <table>
+        <tr>
+            <th>Пункт урока</th>
+            <th>Получено баллов</th>
+            <th>Максимум</th>
+            <th>Процент</th>
+            <th>Заметки</th>
+        </tr>
+        {% for item in items %}
+        <tr class="{{ 'problem-item' if item.score_earned < item.max_score/2 else 'good-item' }}">
+            <td>{{ item.item_name }}</td>
+            <td>{{ item.score_earned }}</td>
+            <td>{{ item.max_score }}</td>
+            <td>
+                {% if item.max_score > 0 %}
+                    {{ "%.0f"|format((item.score_earned / item.max_score) * 100) }}%
+                {% else %}
+                    0%
+                {% endif %}
+            </td>
+            <td>{{ item.notes if item.notes else "-" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <div style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>Общий прогресс:</span>
+            <span>{{ "%.1f"|format(lesson.percentage) }}%</span>
+        </div>
+        <div class="progress">
+            <div class="progress-bar" style="width: {{ lesson.percentage }}%">
+                {{ "%.1f"|format(lesson.percentage) }}%
+            </div>
+        </div>
+    </div>
+
+    <a href="{{ url_for('student', student_id=lesson.student_id) }}"
+       style="display: inline-block; margin-top: 20px; padding: 8px 15px; background: #4a76a8; color: white; text-decoration: none; border-radius: 4px;">
+        Назад к ученику
+    </a>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Таймер</title>
+    <style>
+        body { font-family: Arial; text-align: center; margin-top: 50px; }
+        #timer { font-size: 48px; margin: 20px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Песочные часы ⏳</h1>
+    <div id="timer">30</div>
+    <button onclick="startTimer()">Старт!</button>
+    <button onclick="resetTimer()">Сброс</button>
+    <br><br>
+    <a href="/">Назад в журнал</a>
+
+    <script>
+        let timeLeft = 30;
+        let timerId;
+
+        function startTimer() {
+            clearInterval(timerId);
+            timeLeft = 30;
+            document.getElementById('timer').textContent = timeLeft;
+            timerId = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    alert("Время вышло! ⏰");
+                }
+            }, 1000);
+        }
+
+        function resetTimer() {
+            clearInterval(timerId);
+            timeLeft = 30;
+            document.getElementById('timer').textContent = timeLeft;
+        }
+    </script>
+</body>
+</html>
