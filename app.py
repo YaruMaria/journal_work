@@ -404,18 +404,7 @@ def update_award():
 
 
 if __name__ == "__main__":
-    try:
-        # Инициализация БД
-        print("Инициализация базы данных...")
-        init_db()
-
-        # Создаем первого учителя
-        print("Создание первого учителя...")
-        create_first_teacher()
-
-        # Запуск приложения
-        print("Запуск приложения...")
-        app.run(debug=True)
-    except Exception as e:
-        print(f"Фатальная ошибка при запуске: {e}")
-        raise
+    port = int(os.environ.get("PORT", 10000))  # Измените 5000 на 10000
+    init_db()
+    create_first_teacher()
+    app.run(host="0.0.0.0", port=port)
