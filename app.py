@@ -7,80 +7,86 @@ import os
 from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'  # Замените на случайный ключ в продакшене
-app.config['SESSION_PERMANENT'] = False  # Сессия не будет постоянной
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Время жизни сессии
+app.secret_key = os.environ.get('SECRET_KEY', 'd3b07384d113edec49eaa6238ad5ff00c1f169fbe280f1f2d61af4a07e951d33')
+app.config['SESSION_PERMANENT'] = False
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
+def get_db():
+    """Устанавливает соединение с базой данных"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# Конфигурация базы данных
+DB_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "school.db")
 # Инициализация базы данных
 def init_db():
-    conn = sqlite3.connect("school.db")
-    cursor = conn.cursor()
-
+    """Инициализирует базу данных и создает таблицы"""
+    print(f"Инициализация базы данных по пути: {DB_PATH}")
     try:
-        # Создаем таблицу users первой
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                is_teacher BOOLEAN DEFAULT 0
-            )
-        """)
-        conn.commit()
+        conn = get_db()
+        cursor = conn.cursor()
 
-        # Затем создаем остальные таблицы
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS students (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                level TEXT,
-                start_date TEXT,
-                goal TEXT,
-                teacher_id INTEGER,
-                FOREIGN KEY (teacher_id) REFERENCES users(id)
-            )
-        """)
+        # Проверяем существование таблиц
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        if not cursor.fetchone():
+            # Создаем таблицы, если они не существуют
+            cursor.executescript("""
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    is_teacher BOOLEAN DEFAULT 0
+                );
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS lessons (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                topic TEXT NOT NULL,
-                understanding INTEGER DEFAULT 0,
-                participation INTEGER DEFAULT 0,
-                homework TEXT,
-                FOREIGN KEY (student_id) REFERENCES students(id)
-            )
-        """)
+                CREATE TABLE students (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    level TEXT,
+                    start_date TEXT,
+                    goal TEXT,
+                    teacher_id INTEGER,
+                    FOREIGN KEY (teacher_id) REFERENCES users(id)
+                );
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS monthly_awards (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                year INTEGER NOT NULL,
-                month INTEGER NOT NULL,
-                award INTEGER,
-                FOREIGN KEY (student_id) REFERENCES students(id),
-                UNIQUE(student_id, year, month)
-            )
-        """)
+                CREATE TABLE lessons (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_id INTEGER NOT NULL,
+                    date TEXT NOT NULL,
+                    topic TEXT NOT NULL,
+                    understanding INTEGER DEFAULT 0,
+                    participation INTEGER DEFAULT 0,
+                    homework TEXT,
+                    FOREIGN KEY (student_id) REFERENCES students(id)
+                );
 
-        conn.commit()
-        print("Все таблицы успешно созданы")
+                CREATE TABLE monthly_awards (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_id INTEGER NOT NULL,
+                    year INTEGER NOT NULL,
+                    month INTEGER NOT NULL,
+                    award INTEGER,
+                    FOREIGN KEY (student_id) REFERENCES students(id),
+                    UNIQUE(student_id, year, month)
+                );
+            """)
+            conn.commit()
+            print("Таблицы успешно созданы")
+        else:
+            print("Таблицы уже существуют")
     except sqlite3.Error as e:
-        print(f"Ошибка при создании таблиц: {e}")
-        conn.rollback()
+        print(f"Ошибка при инициализации базы данных: {e}")
         raise
     finally:
         conn.close()
 
 # Создание первого учителя
 def create_first_teacher():
-    conn = sqlite3.connect("school.db")
-    cursor = conn.cursor()
-
+    """Создает учетную запись администратора по умолчанию"""
     try:
+        conn = get_db()
+        cursor = conn.cursor()
+
         cursor.execute("SELECT * FROM users WHERE is_teacher = 1")
         if not cursor.fetchone():
             hashed_password = generate_password_hash("admin123")
@@ -89,12 +95,18 @@ def create_first_teacher():
                 ("admin", hashed_password)
             )
             conn.commit()
-            print("Создан первый учитель: admin / admin123")
+            print("Создан учитель по умолчанию: admin/admin123")
     except sqlite3.Error as e:
-        print(f"Ошибка при создании первого учителя: {e}")
+        print(f"Ошибка при создании учителя: {e}")
         raise
     finally:
         conn.close()
+
+@app.before_first_request
+def initialize():
+    """Инициализация перед первым запросом"""
+    init_db()
+    create_first_teacher()
 
 # Декораторы для проверки прав
 def login_required(f):
@@ -404,18 +416,9 @@ def update_award():
 
 
 if __name__ == "__main__":
-    try:
-        # Инициализация БД
-        print("Инициализация базы данных...")
+    port = int(os.environ.get("PORT", 10000))
+    # Проверяем и инициализируем БД перед запуском
+    if not os.path.exists(DB_PATH):
         init_db()
-
-        # Создаем первого учителя
-        print("Создание первого учителя...")
         create_first_teacher()
-
-        # Запуск приложения
-        print("Запуск приложения...")
-        app.run(debug=True)
-    except Exception as e:
-        print(f"Фатальная ошибка при запуске: {e}")
-        raise
+    app.run(host="0.0.0.0", port=port)
