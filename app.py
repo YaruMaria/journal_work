@@ -5,9 +5,11 @@ from dateutil.relativedelta import relativedelta
 import sqlite3
 import os
 from functools import wraps
+from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+app.secret_key = os.environ.get('SECRET_KEY', 'd3b07384d113edec49eaa6238ad5ff00c1f169fbe280f1f2d61af4a07e951d33')
+csrf = CSRFProtect(app)  # Добавьте эту строку
 app.config['SESSION_PERMANENT'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
@@ -157,34 +159,47 @@ def login():
 
     return render_template('login.html')
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
-        is_teacher = 1 if request.form.get('is_teacher') else 0
+        try:
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            is_teacher = 1 if request.form.get('is_teacher') == 'on' else 0  # Изменено для чекбокса
 
-        if len(username) < 3:
-            flash('Логин должен содержать минимум 3 символа', 'error')
-        elif len(password) < 6:
-            flash('Пароль должен содержать минимум 6 символов', 'error')
-        elif password != confirm_password:
-            flash('Пароли не совпадают', 'error')
-        else:
+            # Валидация
+            errors = []
+            if len(username) < 3:
+                errors.append('Логин должен содержать минимум 3 символа')
+            if len(password) < 6:
+                errors.append('Пароль должен содержать минимум 6 символов')
+            if password != confirm_password:
+                errors.append('Пароли не совпадают')
+
+            if errors:
+                for error in errors:
+                    flash(error, 'error')
+                return render_template('register.html')
+
             hashed_password = generate_password_hash(password)
-
-            try:
-                conn = sqlite3.connect("school.db")
+            with get_db() as conn:
                 cursor = conn.cursor()
-                cursor.execute('INSERT INTO users (username, password, is_teacher) VALUES (?, ?, ?)',
-                               (username, hashed_password, is_teacher))
+                cursor.execute(
+                    'INSERT INTO users (username, password, is_teacher) VALUES (?, ?, ?)',
+                    (username, hashed_password, is_teacher)
+                )
                 conn.commit()
-                conn.close()
-                flash('Регистрация успешна! Теперь войдите', 'success')
-                return redirect(url_for('login'))
-            except sqlite3.IntegrityError:
-                flash('Пользователь с таким именем уже существует', 'error')
+
+            flash('Регистрация успешна! Теперь войдите', 'success')
+            return redirect(url_for('login'))
+
+        except sqlite3.IntegrityError:
+            flash('Пользователь с таким именем уже существует', 'error')
+        except Exception as e:
+            flash(f'Ошибка при регистрации: {str(e)}', 'error')
+            print(f"Ошибка регистрации: {e}")
 
     return render_template('register.html')
 
