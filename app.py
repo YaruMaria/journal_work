@@ -13,8 +13,8 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Время �
 
 # Инициализация базы данных
 def init_db():
-    conn = sqlite3.connect("school.db")
-    print(f"База данных создана по пути: {os.path.abspath('school.db')}")
+    db_path = os.path.join(os.path.dirname(__file__), "school.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     try:
@@ -79,7 +79,8 @@ def init_db():
 @app.before_request
 def before_request():
     try:
-        conn = sqlite3.connect("school.db")
+        db_path = os.path.join(os.path.dirname(__file__), "school.db")
+        conn = sqlite3.connect(db_path)
         conn.execute("SELECT 1 FROM users LIMIT 1")
         conn.close()
     except sqlite3.Error:
@@ -89,7 +90,8 @@ def before_request():
 
 # Создание первого учителя
 def create_first_teacher():
-    conn = sqlite3.connect("school.db")
+    db_path = os.path.join(os.path.dirname(__file__), "school.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     try:
@@ -140,7 +142,8 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        conn = sqlite3.connect("school.db")
+        db_path = os.path.join(os.path.dirname(__file__), "school.db")
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
         user = cursor.fetchone()
@@ -175,7 +178,8 @@ def register():
             hashed_password = generate_password_hash(password)
 
             try:
-                conn = sqlite3.connect("school.db")
+                db_path = os.path.join(os.path.dirname(__file__), "school.db")
+                conn = sqlite3.connect(db_path)
                 cursor = conn.cursor()
                 cursor.execute('INSERT INTO users (username, password, is_teacher) VALUES (?, ?, ?)',
                                (username, hashed_password, is_teacher))
@@ -199,7 +203,8 @@ def logout():
 @login_required
 def home():
     """Страница 'Мои ученики'"""
-    conn = sqlite3.connect("school.db")
+    db_path = os.path.join(os.path.dirname(__file__), "school.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     if session.get('is_teacher'):
@@ -214,7 +219,8 @@ def home():
 @app.route("/student/<int:student_id>")
 @login_required
 def student(student_id):
-    conn = sqlite3.connect("school.db")
+    db_path = os.path.join(os.path.dirname(__file__), "school.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     if session.get('is_teacher'):
@@ -286,7 +292,8 @@ def add_student():
             flash(error, "error")
         return redirect(url_for("home"))
 
-    conn = sqlite3.connect("school.db")
+    db_path = os.path.join(os.path.dirname(__file__), "school.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -317,7 +324,8 @@ def set_coins(lesson_id, coin_type):
     coins = int(request.form.get('coins', 0))
     student_id = request.form.get('student_id')
 
-    conn = sqlite3.connect("school.db")
+    db_path = os.path.join(os.path.dirname(__file__), "school.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     try:
         if coin_type == 'homework':
@@ -342,7 +350,8 @@ def update_homework(lesson_id):
     homework = request.form.get("homework", "")
     student_id = request.form.get("student_id")
 
-    conn = sqlite3.connect("school.db")
+    db_path = os.path.join(os.path.dirname(__file__), "school.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -363,7 +372,8 @@ def student_awards(student_id):
     selected_month = request.args.get('month', current_date.month, type=int)
     selected_year = request.args.get('year', current_date.year, type=int)
 
-    conn = sqlite3.connect("school.db")
+    db_path = os.path.join(os.path.dirname(__file__), "school.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM students WHERE id = ?", (student_id,))
     student = cursor.fetchone()
@@ -398,7 +408,8 @@ def update_award():
     month = int(request.form.get("month"))
     award = int(request.form.get("award"))
 
-    conn = sqlite3.connect("school.db")
+    db_path = os.path.join(os.path.dirname(__file__), "school.db")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -416,7 +427,7 @@ def update_award():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Измените 5000 на 10000
-    init_db()
-    create_first_teacher()
+    init_db()  # Создание таблиц
+    create_first_teacher()  # Создание администратора
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
