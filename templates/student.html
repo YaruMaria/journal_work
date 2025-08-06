@@ -97,6 +97,12 @@
             flex-direction: column;
             justify-content: center;
             position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .grid-cell:hover {
+            background-color: var(--primary-light);
         }
 
         .lesson-number {
@@ -115,42 +121,103 @@
             flex-grow: 1;
         }
 
-        .coins-selector {
-            position: absolute;
-            top: 100%;
+        .coins-modal {
+            position: fixed;
+            top: 0;
             left: 0;
-            width: 100%;
-            background: white;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            display: none;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 12px;
-            z-index: 10;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
 
-        .grid-cell:hover .coins-selector {
+        .coins-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .coins-selector {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            width: 300px;
+            max-width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .coins-title {
+            margin-bottom: 16px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .coins-options {
             display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
         .coin-option {
-            padding: 6px 10px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
             background-color: var(--primary-light);
             color: var(--primary);
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
             transition: all 0.2s;
+            min-width: 60px;
+            justify-content: center;
         }
 
         .coin-option:hover {
             background-color: var(--primary);
             color: white;
+        }
+
+        .coin-option.selected {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .modal-button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .modal-button.confirm {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .modal-button.cancel {
+            background-color: var(--light);
+            color: var(--dark);
+        }
+
+        .modal-button:hover {
+            opacity: 0.9;
         }
 
         .awards-section {
@@ -283,47 +350,47 @@
             </div>
 
             <!-- Усвоение темы -->
-            <div class="grid-cell">
+            <div class="grid-cell"
+                 onclick="openCoinModal('understanding', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[4] }}, 'Усвоение темы - Урок {{ loop.index }}')">
                 <div class="coins-display" id="understanding-display-{{ lesson[0] }}">
                     {% for _ in range(lesson[4]) %}🪙{% endfor %}
-                </div>
-                <div class="coins-selector" data-type="understanding" data-lesson="{{ lesson[0] }}">
-                    {% for n in range(6) %}
-                        <span class="coin-option" onclick="setCoins(this, {{ n }}, 'understanding', {{ lesson[0] }}, {{ student[0] }})">
-                            {{ n }} 🪙
-                        </span>
-                    {% endfor %}
                 </div>
             </div>
 
             <!-- Работа на уроке -->
-            <div class="grid-cell">
+            <div class="grid-cell"
+                 onclick="openCoinModal('participation', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[5] }}, 'Работа на уроке - Урок {{ loop.index }}')">
                 <div class="coins-display" id="participation-display-{{ lesson[0] }}">
                     {% for _ in range(lesson[5]) %}🪙{% endfor %}
-                </div>
-                <div class="coins-selector" data-type="participation" data-lesson="{{ lesson[0] }}">
-                    {% for n in range(6) %}
-                        <span class="coin-option" onclick="setCoins(this, {{ n }}, 'participation', {{ lesson[0] }}, {{ student[0] }})">
-                            {{ n }} 🪙
-                        </span>
-                    {% endfor %}
                 </div>
             </div>
 
             <!-- Домашнее задание -->
-            <div class="grid-cell">
+            <div class="grid-cell"
+                 onclick="openCoinModal('homework', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[6]|int or 0 }}, 'Домашнее задание - Урок {{ loop.index }}')">
                 <div class="coins-display" id="homework-display-{{ lesson[0] }}">
                     {% for _ in range(lesson[6]|int or 0) %}🪙{% endfor %}
                 </div>
-                <div class="coins-selector" data-type="homework" data-lesson="{{ lesson[0] }}">
-                    {% for n in range(6) %}
-                        <span class="coin-option" onclick="setCoins(this, {{ n }}, 'homework', {{ lesson[0] }}, {{ student[0] }})">
-                            {{ n }} 🪙
-                        </span>
-                    {% endfor %}
-                </div>
             </div>
             {% endfor %}
+        </div>
+
+        <!-- Модальное окно для выбора монеток -->
+        <div class="coins-modal" id="coinsModal">
+            <div class="coins-selector">
+                <h3 class="coins-title" id="modalTitle">Выберите количество монеток</h3>
+                <div class="coins-options" id="coinsOptions">
+                    {% for n in range(6) %}
+                        <div class="coin-option" data-value="{{ n }}" onclick="selectCoinOption(this)">
+                            {{ n }} 🪙
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-buttons">
+                    <div class="modal-button cancel" onclick="closeCoinModal()">Отмена</div>
+                    <div class="modal-button confirm" onclick="saveCoins()">Сохранить</div>
+                </div>
+            </div>
         </div>
 
         <!-- Секция наград -->
@@ -366,24 +433,63 @@
     </div>
 
     <script>
-        // Обработка монеток для уроков
-        function setCoins(element, count, type, lessonId, studentId) {
-            const display = document.getElementById(`${type}-display-${lessonId}`);
+        // Текущие данные для модального окна
+        let currentType, currentLessonId, currentStudentId;
+        let selectedCoins = 0;
+
+        // Открытие модального окна для выбора монеток
+        function openCoinModal(type, lessonId, studentId, currentCoins, title) {
+            currentType = type;
+            currentLessonId = lessonId;
+            currentStudentId = studentId;
+            selectedCoins = currentCoins;
+
+            document.getElementById('modalTitle').textContent = title;
+            const modal = document.getElementById('coinsModal');
+            const options = document.querySelectorAll('.coin-option');
+
+            // Сбрасываем выделение
+            options.forEach(option => {
+                option.classList.remove('selected');
+                if (parseInt(option.dataset.value) === currentCoins) {
+                    option.classList.add('selected');
+                }
+            });
+
+            modal.classList.add('active');
+        }
+
+        // Закрытие модального окна
+        function closeCoinModal() {
+            document.getElementById('coinsModal').classList.remove('active');
+        }
+
+        // Выбор количества монеток
+        function selectCoinOption(element) {
+            document.querySelectorAll('.coin-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedCoins = parseInt(element.dataset.value);
+        }
+
+        // Сохранение выбранного количества монеток
+        function saveCoins() {
+            const display = document.getElementById(`${currentType}-display-${currentLessonId}`);
             display.innerHTML = '';
-            for (let i = 0; i < count; i++) {
+            for (let i = 0; i < selectedCoins; i++) {
                 display.innerHTML += '🪙';
             }
 
-            fetch(`/set_coins/${lessonId}/${type}`, {
+            fetch(`/set_coins/${currentLessonId}/${currentType}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `coins=${count}&student_id=${studentId}`
+                body: `coins=${selectedCoins}&student_id=${currentStudentId}`
             });
 
-            // Закрываем выпадающий список после выбора
-            element.closest('.coins-selector').style.display = 'none';
+            closeCoinModal();
         }
 
         // Обработка наград по месяцам
