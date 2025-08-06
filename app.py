@@ -14,6 +14,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Время �
 # Инициализация базы данных
 def init_db():
     conn = sqlite3.connect("school.db")
+    print(f"База данных создана по пути: {os.path.abspath('school.db')}")
     cursor = conn.cursor()
 
     try:
@@ -21,7 +22,7 @@ def init_db():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
+                username TEXT UNIQUE NOT NULL,а
                 password TEXT NOT NULL,
                 is_teacher BOOLEAN DEFAULT 0
             )
@@ -74,6 +75,17 @@ def init_db():
         raise
     finally:
         conn.close()
+
+@app.before_request
+def before_request():
+    try:
+        conn = sqlite3.connect("school.db")
+        conn.execute("SELECT 1 FROM users LIMIT 1")
+        conn.close()
+    except sqlite3.Error:
+        init_db()
+        create_first_teacher()
+
 
 # Создание первого учителя
 def create_first_teacher():
