@@ -11,6 +11,8 @@
             --primary-dark: #2563EB;
             --accent: #EC4899;
             --white: #FFFFFF;
+            --error: #EF4444;
+            --success: #10B981;
         }
 
         * {
@@ -30,7 +32,7 @@
             position: relative;
         }
 
-        /* ОЧЕНЬ ЯРКИЕ пузыри */
+        /* Пузыри */
         .bubble {
             position: absolute;
             border-radius: 50%;
@@ -46,7 +48,7 @@
             100% { transform: translate(0, -300px) scale(1); }
         }
 
-        /* СИНЯЯ форма */
+        /* Форма */
         .auth-box {
             width: 100%;
             max-width: 450px;
@@ -145,11 +147,47 @@
             text-decoration: none;
             font-weight: 600;
         }
+
+        /* Сообщения об ошибках */
+        .error-message {
+            color: var(--error);
+            font-size: 13px;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        /* Алёрты */
+        .alert {
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert-error {
+            background-color: #FEE2E2;
+            color: var(--error);
+            border: 1px solid #FECACA;
+        }
+
+        .alert-success {
+            background-color: #D1FAE5;
+            color: var(--success);
+            border: 1px solid #A7F3D0;
+        }
+
+        .alert-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <!-- ОЧЕНЬ ЯРКИЕ пузыри -->
+    <!-- Пузыри -->
     <div class="bubble" style="width: 350px; height: 350px; left: 5%; top: 50%; background: rgba(59, 130, 246, 0.45); animation-duration: 18s;"></div>
     <div class="bubble" style="width: 400px; height: 400px; left: 60%; top: 10%; background: rgba(99, 102, 241, 0.4); animation-duration: 22s;"></div>
     <div class="bubble" style="width: 300px; height: 300px; left: 30%; top: 70%; background: rgba(236, 72, 153, 0.35); animation-duration: 15s;"></div>
@@ -161,22 +199,53 @@
         </div>
 
         <div class="auth-body">
+            <!-- Вывод сообщений об ошибках/успехе -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span class="alert-icon">
+                                {% if category == 'error' %}
+                                    <i class="fas fa-exclamation-circle"></i>
+                                {% else %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% endif %}
+                            </span>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
             <form method="POST" action="{{ url_for('register') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="form-group">
                     <label for="username" class="form-label">Логин</label>
-                    <input type="text" id="username" name="username" class="form-input" placeholder="Придумайте логин" required minlength="3">
+                    <input type="text" id="username" name="username" class="form-input"
+                           placeholder="Придумайте логин" required minlength="3"
+                           value="{{ username if username }}">
+                    {% if 'username' in form_errors %}
+                        <span class="error-message">{{ form_errors.username }}</span>
+                    {% endif %}
                 </div>
 
                 <div class="form-group">
                     <label for="password" class="form-label">Пароль</label>
-                    <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required minlength="6">
+                    <input type="password" id="password" name="password" class="form-input"
+                           placeholder="••••••••" required minlength="6">
+                    {% if 'password' in form_errors %}
+                        <span class="error-message">{{ form_errors.password }}</span>
+                    {% endif %}
                 </div>
 
                 <div class="form-group">
                     <label for="confirm_password" class="form-label">Подтвердите пароль</label>
-                    <input type="password" id="confirm_password" name="confirm_password" class="form-input" placeholder="••••••••" required>
+                    <input type="password" id="confirm_password" name="confirm_password"
+                           class="form-input" placeholder="••••••••" required>
+                    {% if 'confirm_password' in form_errors %}
+                        <span class="error-message">{{ form_errors.confirm_password }}</span>
+                    {% endif %}
                 </div>
 
                 <div class="checkbox-container">

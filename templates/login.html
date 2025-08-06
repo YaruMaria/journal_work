@@ -14,6 +14,8 @@
             --dark: #1F2937;
             --light: #F9FAFB;
             --gray: #6B7280;
+            --error: #EF4444;
+            --success: #10B981;
         }
 
         * {
@@ -146,27 +148,35 @@
 
         .alert-error {
             background: rgba(239, 68, 68, 0.1);
-            color: #EF4444;
-            border-left: 4px solid #EF4444;
+            color: var(--error);
+            border-left: 4px solid var(--error);
         }
 
         .alert-success {
             background: rgba(16, 185, 129, 0.1);
-            color: #10B981;
-            border-left: 4px solid #10B981;
+            color: var(--success);
+            border-left: 4px solid var(--success);
         }
 
         .alert i {
             margin-right: 10px;
+            font-size: 18px;
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 13px;
+            margin-top: 5px;
+            font-weight: 500;
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <!-- Яркие анимированные пузыри -->
-    <div class="bubble" style="width: 350px; height: 750px; left: 5%; top: 50%; background: rgba(59, 130, 246, 0.45); animation-duration: 18s;"></div>
-    <div class="bubble" style="width: 400px; height: 800px; left: 60%; top: 10%; background: rgba(99, 102, 241, 0.4); animation-duration: 22s;"></div>
-    <div class="bubble" style="width: 300px; height: 600px; left: 30%; top: 70%; background: rgba(236, 72, 153, 0.35); animation-duration: 15s;"></div>
+    <div class="bubble" style="width: 350px; height: 350px; left: 5%; top: 50%; background: rgba(59, 130, 246, 0.45); animation-duration: 18s;"></div>
+    <div class="bubble" style="width: 400px; height: 400px; left: 60%; top: 10%; background: rgba(99, 102, 241, 0.4); animation-duration: 22s;"></div>
+    <div class="bubble" style="width: 300px; height: 300px; left: 30%; top: 70%; background: rgba(236, 72, 153, 0.35); animation-duration: 15s;"></div>
 
     <div class="auth-box">
         <div class="auth-header">
@@ -187,14 +197,25 @@
             {% endwith %}
 
             <form method="POST" action="{{ url_for('login') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
                 <div class="form-group">
                     <label class="form-label" for="username">Логин</label>
-                    <input type="text" class="form-input" id="username" name="username" placeholder="Введите ваш логин" required>
+                    <input type="text" class="form-input" id="username" name="username"
+                           placeholder="Введите ваш логин" required
+                           value="{{ username if username }}">
+                    {% if 'username' in form_errors %}
+                        <span class="error-message">{{ form_errors.username }}</span>
+                    {% endif %}
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="password">Пароль</label>
-                    <input type="password" class="form-input" id="password" name="password" placeholder="Введите пароль" required>
+                    <input type="password" class="form-input" id="password" name="password"
+                           placeholder="Введите пароль" required>
+                    {% if 'password' in form_errors %}
+                        <span class="error-message">{{ form_errors.password }}</span>
+                    {% endif %}
                 </div>
 
                 <button type="submit" class="btn">Войти</button>

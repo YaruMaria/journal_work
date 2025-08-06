@@ -8,10 +8,13 @@ from functools import wraps
 from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'd3b07384d113edec49eaa6238ad5ff00c1f169fbe280f1f2d61af4a07e951d33')
-csrf = CSRFProtect(app)  # Добавьте эту строку
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['SESSION_PERMANENT'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+app.config['WTF_CSRF_ENABLED'] = True  # Включаем CSRF защиту
+
+# Инициализация CSRF защиты
+csrf = CSRFProtect(app)
 
 # Конфигурация базы данных
 DB_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "school.db")
@@ -135,27 +138,33 @@ def index():
     """Перенаправляет на вход, даже если пользователь был авторизован ранее"""
     return redirect(url_for('login'))
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Страница входа"""
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
 
-        conn = sqlite3.connect("school.db")
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
-        user = cursor.fetchone()
-        conn.close()
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'SELECT id, username, password, is_teacher FROM users WHERE username = ?',
+                    (username,)
+                )
+                user = cursor.fetchone()
 
-        if user and check_password_hash(user[2], password):
-            session['user_id'] = user[0]
-            session['username'] = user[1]
-            session['is_teacher'] = bool(user[3])
-            flash('Вы успешно вошли в систему', 'success')
-            return redirect(url_for('home'))
-        else:
+            if user and check_password_hash(user['password'], password):
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session['is_teacher'] = bool(user['is_teacher'])
+                flash('Вы успешно вошли в систему', 'success')
+                return redirect(url_for('home'))
+
             flash('Неверный логин или пароль', 'error')
+        except Exception as e:
+            flash('Ошибка при входе в систему', 'error')
+            print(f"Ошибка входа: {e}")
 
     return render_template('login.html')
 
@@ -167,7 +176,7 @@ def register():
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '').strip()
             confirm_password = request.form.get('confirm_password', '').strip()
-            is_teacher = 1 if request.form.get('is_teacher') == 'on' else 0  # Изменено для чекбокса
+            is_teacher = 1 if request.form.get('is_teacher') == 'on' else 0
 
             # Валидация
             errors = []
@@ -181,7 +190,7 @@ def register():
             if errors:
                 for error in errors:
                     flash(error, 'error')
-                return render_template('register.html')
+                return render_template('register.html', username=username)
 
             hashed_password = generate_password_hash(password)
             with get_db() as conn:
@@ -198,7 +207,7 @@ def register():
         except sqlite3.IntegrityError:
             flash('Пользователь с таким именем уже существует', 'error')
         except Exception as e:
-            flash(f'Ошибка при регистрации: {str(e)}', 'error')
+            flash('Произошла ошибка при регистрации', 'error')
             print(f"Ошибка регистрации: {e}")
 
     return render_template('register.html')
