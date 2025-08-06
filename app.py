@@ -7,9 +7,13 @@ import os
 from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'd3b07384d113edec49eaa6238ad5ff00c1f169fbe280f1f2d61af4a07e951d33')
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['SESSION_PERMANENT'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+
+# Конфигурация базы данных
+DB_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "school.db")
+
 
 def get_db():
     """Устанавливает соединение с базой данных"""
@@ -17,9 +21,7 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-# Конфигурация базы данных
-DB_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "school.db")
-# Инициализация базы данных
+
 def init_db():
     """Инициализирует базу данных и создает таблицы"""
     print(f"Инициализация базы данных по пути: {DB_PATH}")
@@ -102,9 +104,7 @@ def create_first_teacher():
     finally:
         conn.close()
 
-@app.before_first_request
-def initialize():
-    """Инициализация перед первым запросом"""
+with app.app_context():
     init_db()
     create_first_teacher()
 
@@ -417,8 +417,4 @@ def update_award():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    # Проверяем и инициализируем БД перед запуском
-    if not os.path.exists(DB_PATH):
-        init_db()
-        create_first_teacher()
     app.run(host="0.0.0.0", port=port)
