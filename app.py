@@ -402,6 +402,7 @@ def update_award():
     finally:
         conn.close()
 
+
 if __name__ == "__main__":
     try:
         # Инициализация БД

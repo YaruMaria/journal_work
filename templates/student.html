@@ -16,13 +16,22 @@
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
+            --gold: #FFD700;
+            --silver: #C0C0C0;
+            --bronze: #CD7F32;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
             color: var(--dark);
-            margin: 0;
+            line-height: 1.6;
             padding: 20px;
         }
 
@@ -32,7 +41,9 @@
             background-color: white;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            padding: 24px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
         }
 
         .back-link {
@@ -43,84 +54,168 @@
             text-decoration: none;
             margin-bottom: 20px;
             font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: #4338ca;
         }
 
         .student-header {
-            background-color: var(--light);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 24px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
         }
 
         .student-name {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--dark);
+            color: #111827;
+            margin-bottom: 15px;
         }
 
         .student-info {
             display: flex;
-            gap: 16px;
-            color: var(--gray);
-            font-size: 14px;
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
         .info-item {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            font-size: 14px;
+            color: #4b5563;
         }
 
+        .info-item i {
+            color: var(--primary);
+        }
+
+        /* Progress section */
+        .progress-container {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .progress-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .total-coins {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .progress-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .progress-item {
+            background-color: white;
+            border-radius: 6px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background-color: #e5e7eb;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-gold .progress-fill {
+            background-color: var(--gold);
+        }
+
+        .progress-silver .progress-fill {
+            background-color: var(--silver);
+        }
+
+        .progress-bronze .progress-fill {
+            background-color: var(--bronze);
+        }
+
+        /* Lessons grid */
         .lessons-grid {
             display: grid;
             grid-template-columns: 80px repeat(3, 1fr);
-            gap: 12px;
+            gap: 1px;
             margin-bottom: 40px;
+            background-color: #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
         }
 
         .grid-header {
-            font-weight: 600;
+            background-color: var(--primary);
+            color: white;
             padding: 12px;
-            background-color: var(--light);
+            font-weight: 500;
             text-align: center;
-            border-radius: 6px;
         }
 
         .grid-cell {
-            padding: 16px;
             background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            position: relative;
+            padding: 12px;
+            text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background-color 0.2s;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .grid-cell:hover {
-            background-color: var(--primary-light);
+            background-color: #f3f4f6;
         }
 
         .lesson-number {
             font-weight: 600;
-            text-align: center;
-            font-size: 18px;
-            color: var(--primary);
+            background-color: #f9fafb;
         }
 
         .coins-display {
-            font-size: 24px;
-            min-height: 36px;
             display: flex;
             justify-content: center;
-            align-items: center;
-            flex-grow: 1;
+            gap: 5px;
+            flex-wrap: wrap;
+            font-size: 18px;
         }
 
+        /* Modal styles */
         .coins-modal {
             position: fixed;
             top: 0;
@@ -131,7 +226,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 100;
+            z-index: 1000;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s;
@@ -143,67 +238,71 @@
         }
 
         .coins-selector {
-            background: white;
+            background-color: white;
             border-radius: 12px;
-            padding: 20px;
-            width: 300px;
-            max-width: 90%;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            text-align: center;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
         .coins-title {
-            margin-bottom: 16px;
-            font-weight: 600;
-            color: var(--dark);
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 18px;
         }
 
         .coins-options {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 10px;
             margin-bottom: 20px;
         }
 
         .coin-option {
-            padding: 8px 12px;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
             border-radius: 8px;
-            background-color: var(--primary-light);
-            color: var(--primary);
+            text-align: center;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
             transition: all 0.2s;
-            min-width: 60px;
-            justify-content: center;
+            font-size: 16px;
         }
 
         .coin-option:hover {
-            background-color: var(--primary);
-            color: white;
+            border-color: var(--primary-light);
+            background-color: var(--primary-light);
         }
 
         .coin-option.selected {
-            background-color: var(--primary);
-            color: white;
+            border-color: var(--primary);
+            background-color: var(--primary-light);
+            font-weight: 600;
         }
 
         .modal-buttons {
             display: flex;
             gap: 10px;
-            justify-content: center;
         }
 
         .modal-button {
-            padding: 8px 16px;
+            flex: 1;
+            padding: 12px;
             border-radius: 8px;
+            text-align: center;
             cursor: pointer;
             font-weight: 500;
             transition: all 0.2s;
+        }
+
+        .modal-button.cancel {
+            background-color: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .modal-button.cancel:hover {
+            background-color: #e5e7eb;
         }
 
         .modal-button.confirm {
@@ -211,103 +310,207 @@
             color: white;
         }
 
-        .modal-button.cancel {
-            background-color: var(--light);
-            color: var(--dark);
+        .modal-button.confirm:hover {
+            background-color: #4338ca;
         }
 
-        .modal-button:hover {
-            opacity: 0.9;
-        }
-
+        /* Awards section */
         .awards-section {
             margin-top: 40px;
-            padding-top: 24px;
-            border-top: 1px solid #e5e7eb;
         }
 
         .awards-title {
             font-size: 20px;
             font-weight: 600;
             margin-bottom: 20px;
-            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #111827;
+        }
+
+        .awards-title i {
+            color: var(--gold);
         }
 
         .month-slider {
             display: flex;
-            gap: 16px;
-            padding: 16px 0;
+            gap: 15px;
             overflow-x: auto;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .month-slider::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .month-slider::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .month-slider::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
         }
 
         .month-card {
-            min-width: 100px;
-            text-align: center;
-            padding: 16px 12px;
+            min-width: 120px;
+            padding: 15px;
+            background-color: white;
             border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: center;
             cursor: pointer;
-            background: white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             transition: all 0.2s;
+            border: 1px solid #e5e7eb;
         }
 
         .month-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .month-card.current {
+            border-color: var(--primary);
             background-color: var(--primary-light);
-            border: 1px solid var(--primary);
         }
 
         .month-card.has-award {
-            border: 1px solid var(--success);
+            border-color: var(--gold);
+        }
+
+        .month-card h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #111827;
+        }
+
+        .month-card p {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 10px;
         }
 
         .award-preview {
-            font-size: 28px;
-            margin-top: 8px;
+            font-size: 24px;
+            margin-top: 5px;
         }
 
         .award-options {
             display: flex;
             justify-content: center;
-            gap: 16px;
+            gap: 15px;
             margin-top: 20px;
-            flex-wrap: wrap;
         }
 
         .award-option {
-            width: 50px;
-            height: 50px;
+            font-size: 32px;
+            cursor: pointer;
+            padding: 15px;
             border-radius: 50%;
+            width: 60px;
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            font-size: 24px;
             transition: all 0.2s;
             background-color: white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e5e7eb;
         }
 
         .award-option:hover {
             transform: scale(1.1);
         }
 
-        .award-1 { background: linear-gradient(135deg, gold 0%, #f5d742 100%); }
-        .award-2 { background: linear-gradient(135deg, silver 0%, #c0c0c0 100%); }
-        .award-3 { background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%); }
-        .award-4 { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
-
-        .selected-award {
-            transform: scale(1.1);
-            box-shadow: 0 0 0 3px var(--primary-light);
+        .award-option.selected-award {
+            border-color: var(--primary);
+            background-color: var(--primary-light);
         }
 
-        .hidden {
-            display: none;
+        /* Celebration animation */
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .celebration.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .celebration-message {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--gold);
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .firework {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px 5px;
+            animation: explode 1s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: scale(0.1);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .lessons-grid {
+                grid-template-columns: 60px repeat(3, 1fr);
+            }
+
+            .month-card {
+                min-width: 100px;
+                padding: 12px;
+            }
+
+            .celebration-message {
+                font-size: 28px;
+                padding: 0 20px;
+            }
         }
     </style>
 </head>
@@ -336,20 +539,63 @@
             </div>
         </div>
 
+        <!-- Progress section -->
+        <div class="progress-container">
+            <div class="progress-header">
+                <h2 class="progress-title">Прогресс ученика</h2>
+                <div class="total-coins">
+                    <span id="totalCoins">0</span> <span id="trophyIcon">🪙</span>
+                </div>
+            </div>
+
+            <div class="progress-bars">
+                <div class="progress-item progress-gold">
+                    <div class="progress-label">
+                        <span>Золотой кубок (108-120 монет)</span>
+                        <span id="goldRemaining">108 монет до золотого кубка</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="goldProgress"></div>
+                    </div>
+                </div>
+
+                <div class="progress-item progress-silver">
+                    <div class="progress-label">
+                        <span>Серебряный кубок (90-107 монет)</span>
+                        <span id="silverRemaining">90 монет до серебряного кубка</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="silverProgress"></div>
+                    </div>
+                </div>
+
+                <div class="progress-item progress-bronze">
+                    <div class="progress-label">
+                        <span>Бронзовый кубок (60-89 монет)</span>
+                        <span id="bronzeRemaining">60 монет до бронзового кубка</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="bronzeProgress"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lessons grid -->
         <div class="lessons-grid">
-            <!-- Заголовки столбцов -->
+            <!-- Headers -->
             <div class="grid-header">Урок</div>
             <div class="grid-header">Усвоение темы</div>
             <div class="grid-header">Работа на уроке</div>
             <div class="grid-header">Домашнее задание</div>
 
-            <!-- Строки с уроками -->
+            <!-- Lessons rows -->
             {% for lesson in lessons %}
             <div class="grid-cell lesson-number">
                 {{ loop.index }}
             </div>
 
-            <!-- Усвоение темы -->
+            <!-- Understanding -->
             <div class="grid-cell"
                  onclick="openCoinModal('understanding', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[4] }}, 'Усвоение темы - Урок {{ loop.index }}')">
                 <div class="coins-display" id="understanding-display-{{ lesson[0] }}">
@@ -357,7 +603,7 @@
                 </div>
             </div>
 
-            <!-- Работа на уроке -->
+            <!-- Participation -->
             <div class="grid-cell"
                  onclick="openCoinModal('participation', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[5] }}, 'Работа на уроке - Урок {{ loop.index }}')">
                 <div class="coins-display" id="participation-display-{{ lesson[0] }}">
@@ -365,7 +611,7 @@
                 </div>
             </div>
 
-            <!-- Домашнее задание -->
+            <!-- Homework -->
             <div class="grid-cell"
                  onclick="openCoinModal('homework', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[6]|int or 0 }}, 'Домашнее задание - Урок {{ loop.index }}')">
                 <div class="coins-display" id="homework-display-{{ lesson[0] }}">
@@ -375,7 +621,7 @@
             {% endfor %}
         </div>
 
-        <!-- Модальное окно для выбора монеток -->
+        <!-- Coins selection modal -->
         <div class="coins-modal" id="coinsModal">
             <div class="coins-selector">
                 <h3 class="coins-title" id="modalTitle">Выберите количество монеток</h3>
@@ -393,7 +639,7 @@
             </div>
         </div>
 
-        <!-- Секция наград -->
+        <!-- Awards section -->
         <div class="awards-section">
             <h2 class="awards-title">
                 <i class="fas fa-trophy"></i>
@@ -420,7 +666,7 @@
                 {% endfor %}
             </div>
 
-            <div id="awardSelection" class="hidden">
+            <div id="awardSelection" style="display: none;">
                 <h3 id="selectedMonthTitle" style="text-align: center; margin-bottom: 16px;"></h3>
                 <div class="award-options">
                     <div class="award-option award-1" onclick="selectAward(1)">🏆</div>
@@ -432,12 +678,19 @@
         </div>
     </div>
 
+    <!-- Celebration animation -->
+    <div class="celebration" id="celebration">
+        <div class="celebration-message">Поздравляем! Золотой кубок достигнут! 🎉</div>
+    </div>
+
     <script>
-        // Текущие данные для модального окна
+        // Current modal data
         let currentType, currentLessonId, currentStudentId;
         let selectedCoins = 0;
+        let goldCupAchieved = false;
+        let lastTotalCoins = 0;
 
-        // Открытие модального окна для выбора монеток
+        // Open coin selection modal
         function openCoinModal(type, lessonId, studentId, currentCoins, title) {
             currentType = type;
             currentLessonId = lessonId;
@@ -445,10 +698,9 @@
             selectedCoins = currentCoins;
 
             document.getElementById('modalTitle').textContent = title;
-            const modal = document.getElementById('coinsModal');
             const options = document.querySelectorAll('.coin-option');
 
-            // Сбрасываем выделение
+            // Reset selection
             options.forEach(option => {
                 option.classList.remove('selected');
                 if (parseInt(option.dataset.value) === currentCoins) {
@@ -456,15 +708,15 @@
                 }
             });
 
-            modal.classList.add('active');
+            document.getElementById('coinsModal').classList.add('active');
         }
 
-        // Закрытие модального окна
+        // Close modal
         function closeCoinModal() {
             document.getElementById('coinsModal').classList.remove('active');
         }
 
-        // Выбор количества монеток
+        // Select coin option
         function selectCoinOption(element) {
             document.querySelectorAll('.coin-option').forEach(opt => {
                 opt.classList.remove('selected');
@@ -473,7 +725,134 @@
             selectedCoins = parseInt(element.dataset.value);
         }
 
-        // Сохранение выбранного количества монеток
+        // Calculate total coins
+        function calculateTotalCoins() {
+            let total = 0;
+
+            // Understanding coins
+            document.querySelectorAll('[id^="understanding-display-"]').forEach(el => {
+                total += (el.textContent.match(/🪙/g) || []).length;
+            });
+
+            // Participation coins
+            document.querySelectorAll('[id^="participation-display-"]').forEach(el => {
+                total += (el.textContent.match(/🪙/g) || []).length;
+            });
+
+            // Homework coins
+            document.querySelectorAll('[id^="homework-display-"]').forEach(el => {
+                total += (el.textContent.match(/🪙/g) || []).length;
+            });
+
+            return total;
+        }
+
+        // Create firework particle
+        function createFirework() {
+            const celebration = document.getElementById('celebration');
+            const firework = document.createElement('div');
+            firework.className = 'firework';
+
+            // Random gold color
+            const colors = ['gold', '#FFD700', '#FFEA00', '#FFA500', '#FF8C00'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            firework.style.boxShadow = `0 0 10px 5px ${color}`;
+
+            // Random position
+            const x = Math.random() * 80 + 10;
+            const y = Math.random() * 80 + 10;
+            firework.style.left = `${x}%`;
+            firework.style.top = `${y}%`;
+
+            // Random delay
+            firework.style.animationDelay = `${Math.random() * 1.5}s`;
+
+            celebration.appendChild(firework);
+
+            // Remove after animation
+            setTimeout(() => {
+                firework.remove();
+            }, 1500);
+        }
+
+        // Show celebration animation
+        function showCelebration() {
+            const celebration = document.getElementById('celebration');
+            celebration.classList.add('active');
+
+            // Create 50 fireworks
+            for (let i = 0; i < 50; i++) {
+                createFirework();
+            }
+
+            // Hide after 3 seconds
+            setTimeout(() => {
+                celebration.classList.remove('active');
+            }, 3000);
+        }
+
+        // Update progress bars
+        function updateProgress() {
+            const total = calculateTotalCoins();
+            document.getElementById('totalCoins').textContent = total;
+            const trophyIcon = document.getElementById('trophyIcon');
+
+            // Gold cup (108-120 coins)
+            const goldMin = 108;
+            let goldRemaining = Math.max(0, goldMin - total);
+            let goldProgress = Math.min(100, (total / goldMin) * 100);
+
+            document.getElementById('goldRemaining').textContent =
+                goldRemaining > 0 ? `${goldRemaining} монет до золотого кубка` : 'Золотой кубок достигнут! 🎉';
+            document.getElementById('goldProgress').style.width = `${goldProgress}%`;
+
+            // Silver cup (90-107 coins)
+            const silverMin = 90;
+            let silverRemaining = Math.max(0, silverMin - total);
+            let silverProgress = Math.min(100, (total / silverMin) * 100);
+
+            document.getElementById('silverRemaining').textContent =
+                silverRemaining > 0 ? `${silverRemaining} монет до серебряного кубка` : 'Серебряный кубок достигнут!';
+            document.getElementById('silverProgress').style.width = `${silverProgress}%`;
+
+            // Bronze cup (60-89 coins)
+            const bronzeMin = 60;
+            let bronzeRemaining = Math.max(0, bronzeMin - total);
+            let bronzeProgress = Math.min(100, (total / bronzeMin) * 100);
+
+            document.getElementById('bronzeRemaining').textContent =
+                bronzeRemaining > 0 ? `${bronzeRemaining} монет до бронзового кубка` : 'Бронзовый кубок достигнут!';
+            document.getElementById('bronzeProgress').style.width = `${bronzeProgress}%`;
+
+            // Update total coins display
+            const totalCoinsElement = document.getElementById('totalCoins');
+            if (total >= 108) {
+                totalCoinsElement.style.color = 'var(--gold)';
+                trophyIcon.textContent = '🏆';
+
+                // Show celebration only when just reached gold cup
+                if (!goldCupAchieved && lastTotalCoins < 108) {
+                    goldCupAchieved = true;
+                    showCelebration();
+                }
+            } else if (total >= 90) {
+                totalCoinsElement.style.color = 'var(--silver)';
+                trophyIcon.textContent = '🥈';
+                goldCupAchieved = false;
+            } else if (total >= 60) {
+                totalCoinsElement.style.color = 'var(--bronze)';
+                trophyIcon.textContent = '🥉';
+                goldCupAchieved = false;
+            } else {
+                totalCoinsElement.style.color = 'var(--primary)';
+                trophyIcon.textContent = '🪙';
+                goldCupAchieved = false;
+            }
+
+            lastTotalCoins = total;
+        }
+
+        // Save selected coins
         function saveCoins() {
             const display = document.getElementById(`${currentType}-display-${currentLessonId}`);
             display.innerHTML = '';
@@ -487,12 +866,14 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: `coins=${selectedCoins}&student_id=${currentStudentId}`
+            }).then(() => {
+                updateProgress();
             });
 
             closeCoinModal();
         }
 
-        // Обработка наград по месяцам
+        // Awards section functionality
         let currentYear, currentMonth, currentAward;
         const now = new Date();
 
@@ -544,9 +925,10 @@
             return names[month - 1];
         }
 
-        // Инициализация - загружаем текущий месяц
+        // Initialize - load current month and update progress
         window.onload = function() {
             loadMonth(now.getFullYear(), now.getMonth() + 1, null);
+            updateProgress();
         };
     </script>
 </body>
