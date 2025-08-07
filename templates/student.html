@@ -107,55 +107,6 @@
             position: relative;
         }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(224, 231, 255, 0.6);
-        }
-
-        h1 {
-            font-size: 2.4rem;
-            font-weight: 800;
-            color: var(--darker);
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            letter-spacing: -0.5px;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.85rem 2rem;
-            border-radius: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: none;
-            text-decoration: none;
-            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.25);
-            font-size: 1rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.35);
-        }
-
         .back-link {
             display: inline-flex;
             align-items: center;
@@ -200,6 +151,17 @@
 
         .info-item i {
             color: var(--primary);
+        }
+
+        .view-only-notice {
+            background-color: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         /* Progress section */
@@ -300,16 +262,23 @@
             background-color: white;
             padding: 12px;
             text-align: center;
-            cursor: pointer;
-            transition: background-color 0.2s;
             min-height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .grid-cell:hover {
+        .grid-cell.clickable {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .grid-cell.clickable:hover {
             background-color: #f3f4f6;
+        }
+
+        .grid-cell:not(.clickable) {
+            cursor: default;
         }
 
         .lesson-number {
@@ -633,6 +602,13 @@
             Назад к списку учеников
         </a>
 
+        {% if session.get('is_parent') %}
+        <div class="view-only-notice">
+            <i class="fas fa-eye"></i>
+            <span>Режим просмотра (изменение монеток недоступно)</span>
+        </div>
+        {% endif %}
+
         <div class="student-header">
             <h1 class="student-name">{{ student[1] }}</h1>
             <div class="student-info">
@@ -708,24 +684,30 @@
             </div>
 
             <!-- Understanding -->
-            <div class="grid-cell"
-                 onclick="openCoinModal('understanding', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[4] }}, 'Усвоение темы - Урок {{ loop.index }}')">
+            <div class="grid-cell {% if not session.get('is_parent') %}clickable{% endif %}"
+                 {% if not session.get('is_parent') %}
+                 onclick="openCoinModal('understanding', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[4] }}, 'Усвоение темы - Урок {{ loop.index }}')"
+                 {% endif %}>
                 <div class="coins-display" id="understanding-display-{{ lesson[0] }}">
                     {% for _ in range(lesson[4]) %}🪙{% endfor %}
                 </div>
             </div>
 
             <!-- Participation -->
-            <div class="grid-cell"
-                 onclick="openCoinModal('participation', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[5] }}, 'Работа на уроке - Урок {{ loop.index }}')">
+            <div class="grid-cell {% if not session.get('is_parent') %}clickable{% endif %}"
+                 {% if not session.get('is_parent') %}
+                 onclick="openCoinModal('participation', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[5] }}, 'Работа на уроке - Урок {{ loop.index }}')"
+                 {% endif %}>
                 <div class="coins-display" id="participation-display-{{ lesson[0] }}">
                     {% for _ in range(lesson[5]) %}🪙{% endfor %}
                 </div>
             </div>
 
             <!-- Homework -->
-            <div class="grid-cell"
-                 onclick="openCoinModal('homework', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[6]|int or 0 }}, 'Домашнее задание - Урок {{ loop.index }}')">
+            <div class="grid-cell {% if not session.get('is_parent') %}clickable{% endif %}"
+                 {% if not session.get('is_parent') %}
+                 onclick="openCoinModal('homework', {{ lesson[0] }}, {{ student[0] }}, {{ lesson[6]|int or 0 }}, 'Домашнее задание - Урок {{ loop.index }}')"
+                 {% endif %}>
                 <div class="coins-display" id="homework-display-{{ lesson[0] }}">
                     {% for _ in range(lesson[6]|int or 0) %}🪙{% endfor %}
                 </div>
@@ -733,7 +715,8 @@
             {% endfor %}
         </div>
 
-        <!-- Coins selection modal -->
+        <!-- Coins selection modal (only for teachers) -->
+        {% if not session.get('is_parent') %}
         <div class="coins-modal" id="coinsModal">
             <div class="coins-selector">
                 <h3 class="coins-title" id="modalTitle">Выберите количество монеток</h3>
@@ -750,6 +733,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Awards section -->
         <div class="awards-section">
@@ -778,6 +762,7 @@
                 {% endfor %}
             </div>
 
+            {% if not session.get('is_parent') %}
             <div id="awardSelection" style="display: none;">
                 <h3 id="selectedMonthTitle" style="text-align: center; margin-bottom: 16px;"></h3>
                 <div class="award-options">
@@ -787,6 +772,7 @@
                     <div class="award-option award-4" onclick="selectAward(4)">❌</div>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 
@@ -837,107 +823,131 @@
             selectedCoins = parseInt(element.dataset.value);
         }
 
+        // Calculate total coins from server data
+        function calculateTotalCoins() {
+            let total = 0;
+
+            // Получаем все элементы с монетками
+            const understandingDisplays = document.querySelectorAll('[id^="understanding-display-"]');
+            const participationDisplays = document.querySelectorAll('[id^="participation-display-"]');
+            const homeworkDisplays = document.querySelectorAll('[id^="homework-display-"]');
+
+            // Считаем монетки за понимание
+            understandingDisplays.forEach(display => {
+                total += display.textContent.split('🪙').length - 1;
+            });
+
+            // Считаем монетки за участие
+            participationDisplays.forEach(display => {
+                total += display.textContent.split('🪙').length - 1;
+            });
+
+            // Считаем монетки за домашку
+            homeworkDisplays.forEach(display => {
+                total += display.textContent.split('🪙').length - 1;
+            });
+
+            return total;
+        }
+
         // Save selected coins
         function saveCoins() {
             const csrfToken = document.getElementById('csrf_token').value;
             const display = document.getElementById(`${currentType}-display-${currentLessonId}`);
+            const saveButton = document.querySelector('.modal-button.confirm');
+
+            // Визуальная обратная связь
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+            saveButton.disabled = true;
+
+            // Сразу обновляем отображение
             display.innerHTML = '';
             for (let i = 0; i < selectedCoins; i++) {
                 display.innerHTML += '🪙';
             }
 
+            // Анимация
+            display.style.transform = 'scale(1.2)';
+            setTimeout(() => { display.style.transform = 'scale(1)'; }, 300);
+
+            // Отправка на сервер
             fetch(`/set_coins/${currentLessonId}/${currentType}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRFToken': csrfToken
                 },
-                body: `coins=${selectedCoins}&student_id=${currentStudentId}&csrf_token=${csrfToken}`
+                body: `coins=${selectedCoins}&student_id=${currentStudentId}`
             })
             .then(response => {
-                if (!response.ok) {
-                    throw new Error('Ошибка сети');
-                }
+                if (!response.ok) throw new Error('Ошибка сети');
                 return response.json();
             })
             .then(data => {
                 if (data.success) {
+                    // Обновляем общий прогресс
                     updateProgress();
                 } else {
-                    console.error('Ошибка сохранения:', data.error || 'Неизвестная ошибка');
-                    alert('Ошибка сохранения: ' + (data.error || 'Попробуйте снова'));
+                    throw new Error(data.error || 'Ошибка сохранения');
                 }
             })
             .catch(error => {
                 console.error('Ошибка:', error);
-                alert('Ошибка сохранения: ' + error.message);
+                alert(error.message);
+                // Восстанавливаем предыдущее значение
+                display.innerHTML = '';
+                for (let i = 0; i < (selectedCoins === 0 ? 1 : selectedCoins - 1); i++) {
+                    display.innerHTML += '🪙';
+                }
+                updateProgress();
+            })
+            .finally(() => {
+                saveButton.innerHTML = 'Сохранить';
+                saveButton.disabled = false;
+                closeCoinModal();
             });
-
-            closeCoinModal();
-        }
-
-        // Calculate total coins
-        function calculateTotalCoins() {
-            let total = 0;
-
-            // Understanding coins
-            document.querySelectorAll('[id^="understanding-display-"]').forEach(el => {
-                total += (el.textContent.match(/🪙/g) || []).length;
-            });
-
-            // Participation coins
-            document.querySelectorAll('[id^="participation-display-"]').forEach(el => {
-                total += (el.textContent.match(/🪙/g) || []).length;
-            });
-
-            // Homework coins
-            document.querySelectorAll('[id^="homework-display-"]').forEach(el => {
-                total += (el.textContent.match(/🪙/g) || []).length;
-            });
-
-            return total;
         }
 
         // Update progress bars
         function updateProgress() {
             const total = calculateTotalCoins();
-            document.getElementById('totalCoins').textContent = total;
+            const totalCoinsElement = document.getElementById('totalCoins');
             const trophyIcon = document.getElementById('trophyIcon');
 
-            // Gold cup (108-120 coins)
-            const goldMin = 108;
-            let goldRemaining = Math.max(0, goldMin - total);
-            let goldProgress = Math.min(100, (total / goldMin) * 100);
+            // Анимация изменения числа
+            totalCoinsElement.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                totalCoinsElement.style.transform = 'scale(1)';
+            }, 300);
 
-            document.getElementById('goldRemaining').textContent =
-                goldRemaining > 0 ? `${goldRemaining} монет до золотого кубка` : 'Золотой кубок достигнут! 🎉';
-            document.getElementById('goldProgress').style.width = `${goldProgress}%`;
+            totalCoinsElement.textContent = total;
 
-            // Silver cup (90-107 coins)
-            const silverMin = 90;
-            let silverRemaining = Math.max(0, silverMin - total);
-            let silverProgress = Math.min(100, (total / silverMin) * 100);
+            // Обновляем прогресс-бары
+            updateProgressBar('gold', 108, total);
+            updateProgressBar('silver', 90, total);
+            updateProgressBar('bronze', 60, total);
 
-            document.getElementById('silverRemaining').textContent =
-                silverRemaining > 0 ? `${silverRemaining} монет до серебряного кубка` : 'Серебряный кубок достигнут!';
-            document.getElementById('silverProgress').style.width = `${silverProgress}%`;
+            // Обновляем иконку трофея
+            updateTrophyIcon(total);
+        }
 
-            // Bronze cup (60-89 coins)
-            const bronzeMin = 60;
-            let bronzeRemaining = Math.max(0, bronzeMin - total);
-            let bronzeProgress = Math.min(100, (total / bronzeMin) * 100);
+        function updateProgressBar(type, min, total) {
+            const remaining = Math.max(0, min - total);
+            const progress = Math.min(100, (total / min) * 100);
 
-            document.getElementById('bronzeRemaining').textContent =
-                bronzeRemaining > 0 ? `${bronzeRemaining} монет до бронзового кубка` : 'Бронзовый кубок достигнут!';
-            document.getElementById('bronzeProgress').style.width = `${bronzeProgress}%`;
+            document.getElementById(`${type}Remaining`).textContent =
+                remaining > 0 ? `${remaining} монет до ${type === 'gold' ? 'золотого' : type === 'silver' ? 'серебряного' : 'бронзового'} кубка`
+                              : `${type === 'gold' ? 'Золотой' : type === 'silver' ? 'Серебряный' : 'Бронзовый'} кубок достигнут! 🎉`;
+            document.getElementById(`${type}Progress`).style.width = `${progress}%`;
+        }
 
-            // Update total coins display
+        function updateTrophyIcon(total) {
+            const trophyIcon = document.getElementById('trophyIcon');
             const totalCoinsElement = document.getElementById('totalCoins');
+
             if (total >= 108) {
                 totalCoinsElement.style.color = 'var(--gold)';
                 trophyIcon.textContent = '🏆';
-
-                // Show celebration only when just reached gold cup
                 if (!goldCupAchieved && lastTotalCoins < 108) {
                     goldCupAchieved = true;
                     showCelebration();
@@ -992,14 +1002,18 @@
 
             const isCurrent = (year === now.getFullYear() && month === now.getMonth() + 1);
             const awardSelection = document.getElementById('awardSelection');
-            awardSelection.style.display = isCurrent ? 'block' : 'none';
+            if (awardSelection) {
+                awardSelection.style.display = isCurrent ? 'block' : 'none';
+            }
 
-            document.querySelectorAll('.award-option').forEach(el => {
-                el.classList.remove('selected-award');
-            });
+            if (awardSelection) {
+                document.querySelectorAll('.award-option').forEach(el => {
+                    el.classList.remove('selected-award');
+                });
 
-            if (currentAward) {
-                document.querySelector(`.award-${currentAward}`).classList.add('selected-award');
+                if (currentAward) {
+                    document.querySelector(`.award-${currentAward}`).classList.add('selected-award');
+                }
             }
         }
 
@@ -1041,18 +1055,20 @@
 
         // Initialize - load current month and update progress
         window.onload = function() {
-            loadMonth(now.getFullYear(), now.getMonth() + 1, null);
             updateProgress();
+            loadMonth(now.getFullYear(), now.getMonth() + 1, null);
 
-            // Add click effect for coins
-            document.querySelectorAll('.coins-display').forEach(el => {
-                el.addEventListener('click', function() {
-                    this.style.transform = 'scale(1.1)';
-                    setTimeout(() => {
-                        this.style.transform = 'scale(1)';
-                    }, 200);
+            // Add click effect for coins (only for teachers)
+            if (!{{ 'true' if session.get('is_parent') else 'false' }}) {
+                document.querySelectorAll('.coins-display').forEach(el => {
+                    el.addEventListener('click', function() {
+                        this.style.transform = 'scale(1.1)';
+                        setTimeout(() => {
+                            this.style.transform = 'scale(1)';
+                        }, 200);
+                    });
                 });
-            });
+            }
 
             // Add hover effects for month cards
             document.querySelectorAll('.month-card').forEach(card => {

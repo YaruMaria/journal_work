@@ -515,21 +515,17 @@ def set_coins(lesson_id, coin_type):
         conn = get_db()
         cursor = conn.cursor()
 
-        # Проверяем права доступа (учитель или родитель этого ученика)
+        # Проверяем права доступа (учитель этого ученика)
         cursor.execute("""
             SELECT 1 FROM lessons l
             JOIN students s ON l.student_id = s.id
-            WHERE l.id = ? AND (
-                s.teacher_id = ? OR
-                EXISTS (SELECT 1 FROM parents p 
-                       WHERE p.student_id = s.id AND p.user_id = ?)
-            )
-        """, (lesson_id, session['user_id'], session['user_id']))
+            WHERE l.id = ? AND s.teacher_id = ?
+        """, (lesson_id, session['user_id']))
 
         if not cursor.fetchone():
             return jsonify({'error': 'Доступ запрещён'}), 403
 
-        # Обновляем монеты
+        # Обновляем данные
         if coin_type == 'homework':
             cursor.execute("""
                 UPDATE lessons SET homework = ?
@@ -543,9 +539,23 @@ def set_coins(lesson_id, coin_type):
 
         conn.commit()
 
+        # Получаем обновлённые данные для ответа
+        cursor.execute("""
+            SELECT COALESCE(understanding, 0) as understanding,
+                   COALESCE(participation, 0) as participation,
+                   COALESCE(NULLIF(homework, ''), '0') as homework
+            FROM lessons WHERE id = ?
+        """, (lesson_id,))
+        lesson = cursor.fetchone()
+
+        total_coins = (lesson['understanding'] +
+                       lesson['participation'] +
+                       int(lesson['homework']))
+
         return jsonify({
             'success': True,
-            'message': 'Монеты обновлены',
+            'coins': coins,
+            'total_coins': total_coins,
             'updated_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
 
