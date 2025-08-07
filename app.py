@@ -37,13 +37,14 @@ def init_db():
         # Проверяем существование таблиц
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
         if not cursor.fetchone():
-            # Создаем таблицы, если они не существуют
+            # Создаем все таблицы с нуля
             cursor.executescript("""
                 CREATE TABLE users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
-                    is_teacher BOOLEAN DEFAULT 0
+                    is_teacher BOOLEAN DEFAULT 0,
+                    is_parent BOOLEAN DEFAULT 0
                 );
 
                 CREATE TABLE students (
@@ -76,13 +77,91 @@ def init_db():
                     FOREIGN KEY (student_id) REFERENCES students(id),
                     UNIQUE(student_id, year, month)
                 );
+
+                CREATE TABLE parent_child (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    parent_id INTEGER NOT NULL,
+                    student_id INTEGER NOT NULL,
+                    FOREIGN KEY (parent_id) REFERENCES users(id),
+                    FOREIGN KEY (student_id) REFERENCES students(id),
+                    UNIQUE(parent_id, student_id)
+                );
             """)
             conn.commit()
-            print("Таблицы успешно созданы")
+            print("Все таблицы успешно созданы")
         else:
-            print("Таблицы уже существуют")
+            # Если таблицы уже существуют, добавляем недостающие колонки
+            try:
+                # Добавляем is_parent в users, если его нет
+                cursor.execute("ALTER TABLE users ADD COLUMN is_parent BOOLEAN DEFAULT 0")
+                print("Добавлен столбец is_parent в таблицу users")
+            except sqlite3.OperationalError as e:
+                if "duplicate column name" not in str(e):
+                    raise
+                print("Столбец is_parent уже существует")
+
+            # Создаем таблицу parent_child, если ее нет
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS parent_child (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    parent_id INTEGER NOT NULL,
+                    student_id INTEGER NOT NULL,
+                    FOREIGN KEY (parent_id) REFERENCES users(id),
+                    FOREIGN KEY (student_id) REFERENCES students(id),
+                    UNIQUE(parent_id, student_id)
+                )
+            """)
+
+            # Проверяем и добавляем другие таблицы, если их нет
+            tables_to_check = ['students', 'lessons', 'monthly_awards']
+            for table in tables_to_check:
+                cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
+                if not cursor.fetchone():
+                    if table == 'students':
+                        cursor.execute("""
+                            CREATE TABLE students (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                name TEXT NOT NULL,
+                                level TEXT,
+                                start_date TEXT,
+                                goal TEXT,
+                                teacher_id INTEGER,
+                                FOREIGN KEY (teacher_id) REFERENCES users(id)
+                            )
+                        """)
+                    elif table == 'lessons':
+                        cursor.execute("""
+                            CREATE TABLE lessons (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                student_id INTEGER NOT NULL,
+                                date TEXT NOT NULL,
+                                topic TEXT NOT NULL,
+                                understanding INTEGER DEFAULT 0,
+                                participation INTEGER DEFAULT 0,
+                                homework TEXT,
+                                FOREIGN KEY (student_id) REFERENCES students(id)
+                            )
+                        """)
+                    elif table == 'monthly_awards':
+                        cursor.execute("""
+                            CREATE TABLE monthly_awards (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                student_id INTEGER NOT NULL,
+                                year INTEGER NOT NULL,
+                                month INTEGER NOT NULL,
+                                award INTEGER,
+                                FOREIGN KEY (student_id) REFERENCES students(id),
+                                UNIQUE(student_id, year, month)
+                            )
+                        """)
+                    print(f"Таблица {table} создана")
+
+            conn.commit()
+            print("Проверка и обновление структуры базы данных завершены")
+
     except sqlite3.Error as e:
         print(f"Ошибка при инициализации базы данных: {e}")
+        conn.rollback()
         raise
     finally:
         conn.close()
@@ -149,7 +228,7 @@ def login():
             with get_db() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    'SELECT id, username, password, is_teacher FROM users WHERE username = ?',
+                    'SELECT id, username, password, is_teacher, is_parent FROM users WHERE username = ?',
                     (username,)
                 )
                 user = cursor.fetchone()
@@ -158,8 +237,14 @@ def login():
                 session['user_id'] = user['id']
                 session['username'] = user['username']
                 session['is_teacher'] = bool(user['is_teacher'])
+                session['is_parent'] = bool(user['is_parent'])
                 flash('Вы успешно вошли в систему', 'success')
-                return redirect(url_for('home'))
+
+                # Перенаправляем в зависимости от роли
+                if user['is_parent']:
+                    return redirect(url_for('parent_dashboard'))
+                else:
+                    return redirect(url_for('home'))
 
             flash('Неверный логин или пароль', 'error')
         except Exception as e:
@@ -177,6 +262,7 @@ def register():
             password = request.form.get('password', '').strip()
             confirm_password = request.form.get('confirm_password', '').strip()
             is_teacher = 1 if request.form.get('is_teacher') == 'on' else 0
+            is_parent = 1 if request.form.get('is_parent') == 'on' else 0
 
             # Валидация
             errors = []
@@ -186,6 +272,8 @@ def register():
                 errors.append('Пароль должен содержать минимум 6 символов')
             if password != confirm_password:
                 errors.append('Пароли не совпадают')
+            if is_teacher and is_parent:
+                errors.append('Вы не можете быть одновременно учителем и родителем')
 
             if errors:
                 for error in errors:
@@ -196,8 +284,8 @@ def register():
             with get_db() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    'INSERT INTO users (username, password, is_teacher) VALUES (?, ?, ?)',
-                    (username, hashed_password, is_teacher)
+                    'INSERT INTO users (username, password, is_teacher, is_parent) VALUES (?, ?, ?, ?)',
+                    (username, hashed_password, is_teacher, is_parent)
                 )
                 conn.commit()
 
@@ -212,6 +300,68 @@ def register():
 
     return render_template('register.html')
 
+
+@app.route('/search_student')
+@login_required
+def search_student():
+    if not session.get('is_parent'):
+        return redirect(url_for('home'))
+
+    query = request.args.get('query', '').strip()
+    if len(query) < 2:
+        return render_template('search_child.html', students=[])
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Ищем студентов по имени
+    cursor.execute("""
+        SELECT id, name, level, start_date 
+        FROM students 
+        WHERE name LIKE ? 
+        LIMIT 10
+    """, (f'%{query}%',))
+
+    students = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+
+    # Для GET-запросов с параметром query возвращаем HTML с результатами
+    if 'query' in request.args:
+        return render_template('search_child.html', students=students)
+
+    # Для AJAX-запросов возвращаем JSON
+    return jsonify(students)
+
+
+@app.route('/parent_dashboard')
+@login_required
+def parent_dashboard():
+    if not session.get('is_parent'):
+        return redirect(url_for('home'))
+
+    return render_template('search_child.html')
+
+@app.route("/home")
+@login_required
+def home():
+    """Главная страница после входа"""
+    if session.get('is_parent'):
+        # Для родителей перенаправляем на поиск ребенка
+        return redirect(url_for('parent_dashboard'))
+    elif session.get('is_teacher'):
+        # Для учителей показываем список учеников
+        conn = sqlite3.connect("school.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM students WHERE teacher_id = ?", (session['user_id'],))
+        students = cursor.fetchall()
+        conn.close()
+        return render_template("index.html", students=students)
+    else:
+        # Для других ролей (если будут добавлены)
+        flash("У вас нет прав доступа", "error")
+        return redirect(url_for('login'))
+# Обновим home для родителей
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -219,41 +369,63 @@ def logout():
     return redirect(url_for('login'))
 
 # Основные маршруты
-@app.route("/home")
+
+@app.route('/debug/parent_child')
 @login_required
-def home():
-    """Страница 'Мои ученики'"""
-    conn = sqlite3.connect("school.db")
+@teacher_required
+def debug_parent_child():
+    conn = get_db()
     cursor = conn.cursor()
-
-    if session.get('is_teacher'):
-        cursor.execute("SELECT * FROM students WHERE teacher_id = ?", (session['user_id'],))
-    else:
-        cursor.execute("SELECT * FROM students LIMIT 0")
-
-    students = cursor.fetchall()
+    cursor.execute("SELECT * FROM parent_child")
+    relations = cursor.fetchall()
     conn.close()
-    return render_template("index.html", students=students)
+    return str(relations)
 
 @app.route("/student/<int:student_id>")
 @login_required
 def student(student_id):
-    conn = sqlite3.connect("school.db")
+    print(f"Attempting to access student page for ID: {student_id}")  # Отладочное сообщение
+    conn = get_db()
     cursor = conn.cursor()
 
-    if session.get('is_teacher'):
-        cursor.execute("SELECT * FROM students WHERE id = ? AND teacher_id = ?",
-                       (student_id, session['user_id']))
-    else:
-        cursor.execute("SELECT * FROM students WHERE id = ?", (student_id,))
-
+    # Получаем данные ученика
+    cursor.execute("""
+        SELECT s.*, u.username as teacher_name 
+        FROM students s
+        LEFT JOIN users u ON s.teacher_id = u.id
+        WHERE s.id = ?
+    """, (student_id,))
     student = cursor.fetchone()
 
     if not student:
         conn.close()
-        flash("Ученик не найден или у вас нет прав доступа", "error")
+        flash("Ученик не найден", "error")
         return redirect(url_for("home"))
 
+    # Проверка прав доступа
+    if session.get('is_parent'):
+        # Для родителей проверяем связь в parent_child
+        cursor.execute("""
+            SELECT 1 FROM parent_child 
+            WHERE parent_id = ? AND student_id = ?
+        """, (session['user_id'], student_id))
+        if not cursor.fetchone():
+            conn.close()
+            flash("У вас нет доступа к этому ученику", "error")
+            return redirect(url_for("parent_dashboard"))
+    elif session.get('is_teacher'):
+        # Для учителей проверяем, что ученик привязан к нему
+        if student['teacher_id'] != session['user_id']:
+            conn.close()
+            flash("У вас нет доступа к этому ученику", "error")
+            return redirect(url_for("home"))
+    else:
+        # Для других ролей (если будут)
+        conn.close()
+        flash("У вас нет прав доступа", "error")
+        return redirect(url_for("home"))
+
+    # Если доступ разрешен, продолжаем обработку
     if session.get('is_teacher'):
         cursor.execute("SELECT COUNT(*) FROM lessons WHERE student_id = ?", (student_id,))
         lesson_count = cursor.fetchone()[0]
@@ -284,11 +456,53 @@ def student(student_id):
     conn.close()
 
     return render_template("student.html",
-                           student=student,
-                           lessons=lessons,
-                           awards=awards,
-                           current_date=datetime.now(),
-                           relativedelta=relativedelta)
+                         student=student,
+                         lessons=lessons,
+                         awards=awards,
+                         current_date=datetime.now(),
+                         relativedelta=relativedelta)
+
+
+@app.route('/link_child', methods=['POST'])
+@login_required
+@teacher_required
+def link_child():
+    parent_id = request.form.get('parent_id')
+    student_id = request.form.get('student_id')
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Проверяем, что пользователь действительно родитель
+        cursor.execute("SELECT is_parent FROM users WHERE id = ?", (parent_id,))
+        user = cursor.fetchone()
+        if not user or not user['is_parent']:
+            flash("Указанный пользователь не является родителем", "error")
+            return redirect(url_for('admin'))
+
+        # Проверяем существование студента
+        cursor.execute("SELECT 1 FROM students WHERE id = ?", (student_id,))
+        if not cursor.fetchone():
+            flash("Ученик не найден", "error")
+            return redirect(url_for('admin'))
+
+        # Связываем родителя и ребенка
+        cursor.execute("""
+            INSERT OR IGNORE INTO parent_child (parent_id, student_id) 
+            VALUES (?, ?)
+        """, (parent_id, student_id))
+        conn.commit()
+
+        flash("Ребенок успешно привязан к родителю", "success")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Ошибка при привязке ребенка: {str(e)}", "error")
+    finally:
+        conn.close()
+
+    return redirect(url_for('admin'))
+
 
 @app.route("/add_student", methods=["POST"])
 @login_required
