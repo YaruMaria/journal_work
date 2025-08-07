@@ -18,7 +18,14 @@ app.config['WTF_CSRF_ENABLED'] = True  # Включаем CSRF защиту
 
 # Инициализация CSRF защиты
 csrf = CSRFProtect(app)
-
+@app.route('/debug')
+def debug():
+    import os
+    return {
+        "template_folder": app.template_folder,
+        "login_exists": os.path.exists(f"{app.template_folder}/login.html"),
+        "files": os.listdir(app.template_folder)
+    }
 # Конфигурация базы данных
 DB_PATH = '/home/Mariaschoolwork/myflaskapp/school.db'
 print(f"Template folder: {app.template_folder}")
