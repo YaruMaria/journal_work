@@ -99,9 +99,11 @@
 
     <script>
         let currentYear, currentMonth, currentAward;
+
+        // Получаем текущую дату
         const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
+        const currentYearGlobal = now.getFullYear();
+        const currentMonthGlobal = now.getMonth() + 1;
 
         function loadMonth(year, month, award) {
             currentYear = year;
@@ -112,7 +114,7 @@
                 `Выбран месяц: ${monthName(month)} ${year}`;
 
             // Показываем блок выбора награды только для текущего месяца
-            const isCurrent = (year === currentYear && month === currentMonth);
+            const isCurrent = (year === currentYearGlobal && month === currentMonthGlobal);
             document.getElementById('awardSelection').style.display = isCurrent ? 'block' : 'none';
 
             // Сбрасываем выделение
@@ -135,18 +137,29 @@
             });
             document.querySelector(`.award-${award}`).classList.add('selected-award');
 
+            // Создаем форму для отправки данных
+            const formData = new FormData();
+            formData.append('student_id', '{{ student[0] }}');
+            formData.append('year', currentYear);
+            formData.append('month', currentMonth);
+            formData.append('award', award);
+            formData.append('csrf_token', '{{ csrf_token() }}');
+
             // Сохраняем в базу
-            fetch('/update_award', {
+            fetch('{{ url_for("update_award") }}', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `student_id={{ student[0] }}&year=${currentYear}&month=${currentMonth}&award=${award}`
+                body: formData
             }).then(response => response.json())
               .then(data => {
                   if (data.status === 'success') {
                       location.reload(); // Обновляем страницу, чтобы показать новую награду
+                  } else {
+                      alert('Ошибка при сохранении награды');
                   }
+              })
+              .catch(error => {
+                  console.error('Error:', error);
+                  alert('Произошла ошибка при сохранении');
               });
         }
 
@@ -156,18 +169,9 @@
             return names[month - 1];
         }
 
-        // Прокрутка месяцев
-        let scrollPosition = 0;
-        const slider = document.getElementById('monthSlider');
-
-        function scrollMonths(direction) {
-            scrollPosition += direction * 150;
-            slider.scrollTo({left: scrollPosition, behavior: 'smooth'});
-        }
-
         // Загружаем текущий месяц при открытии страницы
         window.onload = function() {
-            loadMonth(currentYear, currentMonth, null);
+            loadMonth(currentYearGlobal, currentMonthGlobal, null);
         };
     </script>
 </body>

@@ -39,7 +39,6 @@
             min-height: 100vh;
         }
 
-        /* Улучшенные пузырьки с плавными градиентами */
         .bubbles {
             position: fixed;
             top: 0;
@@ -69,70 +68,6 @@
                       rgba(67, 97, 238, 0.15) 0%,
                       rgba(123, 44, 191, 0.1) 50%,
                       transparent 70%);
-        }
-
-        .bubble:nth-child(1) {
-            width: 80px;
-            height: 80px;
-            left: 5%;
-            animation-duration: 18s;
-            animation-delay: 0s;
-        }
-
-        .bubble:nth-child(2) {
-            width: 40px;
-            height: 40px;
-            left: 15%;
-            animation-duration: 14s;
-            animation-delay: 2s;
-        }
-
-        .bubble:nth-child(3) {
-            width: 90px;
-            height: 90px;
-            left: 30%;
-            animation-duration: 20s;
-            animation-delay: 1s;
-        }
-
-        .bubble:nth-child(4) {
-            width: 120px;
-            height: 120px;
-            left: 45%;
-            animation-duration: 22s;
-            animation-delay: 0.5s;
-        }
-
-        .bubble:nth-child(5) {
-            width: 60px;
-            height: 60px;
-            left: 60%;
-            animation-duration: 16s;
-            animation-delay: 3s;
-        }
-
-        .bubble:nth-child(6) {
-            width: 100px;
-            height: 100px;
-            left: 75%;
-            animation-duration: 18s;
-            animation-delay: 1.5s;
-        }
-
-        .bubble:nth-child(7) {
-            width: 50px;
-            height: 50px;
-            left: 85%;
-            animation-duration: 15s;
-            animation-delay: 2.5s;
-        }
-
-        .bubble:nth-child(8) {
-            width: 140px;
-            height: 140px;
-            left: 90%;
-            animation-duration: 25s;
-            animation-delay: 0s;
         }
 
         @keyframes rise {
@@ -213,26 +148,6 @@
             box-shadow: 0 6px 16px rgba(67, 97, 238, 0.35);
         }
 
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0));
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .btn-primary:hover::after {
-            opacity: 1;
-        }
-
         .students-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -293,11 +208,6 @@
             transition: all 0.3s ease;
         }
 
-        .student-card:hover .student-level {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(67, 97, 238, 0.2);
-        }
-
         .add-student-form {
             background: linear-gradient(145deg, rgba(255,255,255,0.98), rgba(248, 250, 252, 0.95));
             border-radius: 1.5rem;
@@ -307,16 +217,6 @@
             border: 1px solid rgba(224, 231, 255, 0.8);
             position: relative;
             overflow: hidden;
-        }
-
-        .add-student-form::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 120px;
-            height: 120px;
-            background: radial-gradient(circle, rgba(67, 97, 238, 0.08) 0%, transparent 70%);
         }
 
         .form-title {
@@ -373,10 +273,6 @@
             background-color: white;
         }
 
-        .form-input:hover {
-            border-color: var(--primary-light);
-        }
-
         @media (max-width: 768px) {
             .container {
                 padding: 1.5rem;
@@ -407,6 +303,43 @@
                 font-size: 1.4rem;
             }
         }
+
+        /* Стили для сообщений flash */
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .flash-message {
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+            max-width: 350px;
+        }
+
+        .flash-success {
+            background-color: var(--success);
+        }
+
+        .flash-error {
+            background-color: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -422,15 +355,26 @@
         <div class="bubble"></div>
     </div>
 
+    <!-- Контейнер для flash-сообщений -->
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
     <div class="container">
         <header>
             <h1>Журнал успеваемости</h1>
-            <a href="#" class="btn btn-primary">Добавить ученика</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-primary">Выйти</a>
         </header>
 
         <div class="students-grid">
             {% for student in students %}
-            <div class="student-card" onclick="window.location.href='/student/{{ student[0] }}'">
+            <div class="student-card" onclick="window.location.href='{{ url_for('student', student_id=student[0]) }}'">
                 <h3 class="student-name">{{ student[1] }}</h3>
                 <span class="student-level">{{ student[2] or 'Без уровня' }}</span>
             </div>
@@ -439,7 +383,10 @@
 
         <div class="add-student-form">
             <h3 class="form-title">Добавить нового ученика</h3>
-            <form action="/add_student" method="post">
+            <form action="{{ url_for('add_student') }}" method="post">
+                <!-- CSRF Token -->
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
                 <div class="form-group">
                     <label for="name" class="form-label">Имя ученика</label>
                     <input type="text" id="name" name="name" class="form-input" required>
@@ -460,5 +407,19 @@
             </form>
         </div>
     </div>
+
+    <script>
+        // Автоматическое скрытие flash-сообщений через 5 секунд
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(message => {
+                setTimeout(() => {
+                    message.style.transition = 'opacity 0.5s ease';
+                    message.style.opacity = '0';
+                    setTimeout(() => message.remove(), 500);
+                }, 5000);
+            });
+        });
+    </script>
 </body>
 </html>
