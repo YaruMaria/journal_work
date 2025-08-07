@@ -7,7 +7,10 @@ import os
 from functools import wraps
 from flask_wtf.csrf import CSRFProtect
 
-app = Flask(__name__, template_folder='/home/Mariaworksschool/myflaskapp/templates')
+app = Flask(
+    __name__,
+    template_folder='/home/Mariaschoolwork/myflaskapp/templates'  # Именно этот путь!
+)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['SESSION_PERMANENT'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
