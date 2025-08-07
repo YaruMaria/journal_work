@@ -21,7 +21,8 @@ csrf = CSRFProtect(app)
 
 # Конфигурация базы данных
 DB_PATH = '/home/Mariaschoolwork/myflaskapp/school.db'
-
+print(f"Template folder: {app.template_folder}")
+print(f"Files in templates: {os.listdir(app.template_folder)}")
 @app.route('/debug_templates')
 def debug_templates():
     import os
