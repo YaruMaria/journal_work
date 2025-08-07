@@ -5,82 +5,95 @@ from dateutil.relativedelta import relativedelta
 import sqlite3
 import os
 from functools import wraps
+from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'  # Замените на случайный ключ в продакшене
-app.config['SESSION_PERMANENT'] = False  # Сессия не будет постоянной
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Время жизни сессии
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+app.config['SESSION_PERMANENT'] = False
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+app.config['WTF_CSRF_ENABLED'] = True  # Включаем CSRF защиту
 
-# Инициализация базы данных
+# Инициализация CSRF защиты
+csrf = CSRFProtect(app)
+
+# Конфигурация базы данных
+DB_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "school.db")
+
+
+def get_db():
+    """Устанавливает соединение с базой данных"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def init_db():
-    conn = sqlite3.connect("school.db")
-    cursor = conn.cursor()
-
+    """Инициализирует базу данных и создает таблицы"""
+    print(f"Инициализация базы данных по пути: {DB_PATH}")
     try:
-        # Создаем таблицу users первой
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                is_teacher BOOLEAN DEFAULT 0
-            )
-        """)
-        conn.commit()
+        conn = get_db()
+        cursor = conn.cursor()
 
-        # Затем создаем остальные таблицы
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS students (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                level TEXT,
-                start_date TEXT,
-                goal TEXT,
-                teacher_id INTEGER,
-                FOREIGN KEY (teacher_id) REFERENCES users(id)
-            )
-        """)
+        # Проверяем существование таблиц
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        if not cursor.fetchone():
+            # Создаем таблицы, если они не существуют
+            cursor.executescript("""
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    is_teacher BOOLEAN DEFAULT 0
+                );
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS lessons (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                topic TEXT NOT NULL,
-                understanding INTEGER DEFAULT 0,
-                participation INTEGER DEFAULT 0,
-                homework TEXT,
-                FOREIGN KEY (student_id) REFERENCES students(id)
-            )
-        """)
+                CREATE TABLE students (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    level TEXT,
+                    start_date TEXT,
+                    goal TEXT,
+                    teacher_id INTEGER,
+                    FOREIGN KEY (teacher_id) REFERENCES users(id)
+                );
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS monthly_awards (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                year INTEGER NOT NULL,
-                month INTEGER NOT NULL,
-                award INTEGER,
-                FOREIGN KEY (student_id) REFERENCES students(id),
-                UNIQUE(student_id, year, month)
-            )
-        """)
+                CREATE TABLE lessons (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_id INTEGER NOT NULL,
+                    date TEXT NOT NULL,
+                    topic TEXT NOT NULL,
+                    understanding INTEGER DEFAULT 0,
+                    participation INTEGER DEFAULT 0,
+                    homework TEXT,
+                    FOREIGN KEY (student_id) REFERENCES students(id)
+                );
 
-        conn.commit()
-        print("Все таблицы успешно созданы")
+                CREATE TABLE monthly_awards (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_id INTEGER NOT NULL,
+                    year INTEGER NOT NULL,
+                    month INTEGER NOT NULL,
+                    award INTEGER,
+                    FOREIGN KEY (student_id) REFERENCES students(id),
+                    UNIQUE(student_id, year, month)
+                );
+            """)
+            conn.commit()
+            print("Таблицы успешно созданы")
+        else:
+            print("Таблицы уже существуют")
     except sqlite3.Error as e:
-        print(f"Ошибка при создании таблиц: {e}")
-        conn.rollback()
+        print(f"Ошибка при инициализации базы данных: {e}")
         raise
     finally:
         conn.close()
 
 # Создание первого учителя
 def create_first_teacher():
-    conn = sqlite3.connect("school.db")
-    cursor = conn.cursor()
-
+    """Создает учетную запись администратора по умолчанию"""
     try:
+        conn = get_db()
+        cursor = conn.cursor()
+
         cursor.execute("SELECT * FROM users WHERE is_teacher = 1")
         if not cursor.fetchone():
             hashed_password = generate_password_hash("admin123")
@@ -89,12 +102,16 @@ def create_first_teacher():
                 ("admin", hashed_password)
             )
             conn.commit()
-            print("Создан первый учитель: admin / admin123")
+            print("Создан учитель по умолчанию: admin/admin123")
     except sqlite3.Error as e:
-        print(f"Ошибка при создании первого учителя: {e}")
+        print(f"Ошибка при создании учителя: {e}")
         raise
     finally:
         conn.close()
+
+with app.app_context():
+    init_db()
+    create_first_teacher()
 
 # Декораторы для проверки прав
 def login_required(f):
@@ -121,58 +138,77 @@ def index():
     """Перенаправляет на вход, даже если пользователь был авторизован ранее"""
     return redirect(url_for('login'))
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Страница входа"""
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
 
-        conn = sqlite3.connect("school.db")
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
-        user = cursor.fetchone()
-        conn.close()
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    'SELECT id, username, password, is_teacher FROM users WHERE username = ?',
+                    (username,)
+                )
+                user = cursor.fetchone()
 
-        if user and check_password_hash(user[2], password):
-            session['user_id'] = user[0]
-            session['username'] = user[1]
-            session['is_teacher'] = bool(user[3])
-            flash('Вы успешно вошли в систему', 'success')
-            return redirect(url_for('home'))
-        else:
+            if user and check_password_hash(user['password'], password):
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session['is_teacher'] = bool(user['is_teacher'])
+                flash('Вы успешно вошли в систему', 'success')
+                return redirect(url_for('home'))
+
             flash('Неверный логин или пароль', 'error')
+        except Exception as e:
+            flash('Ошибка при входе в систему', 'error')
+            print(f"Ошибка входа: {e}")
 
     return render_template('login.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
-        is_teacher = 1 if request.form.get('is_teacher') else 0
+        try:
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            is_teacher = 1 if request.form.get('is_teacher') == 'on' else 0
 
-        if len(username) < 3:
-            flash('Логин должен содержать минимум 3 символа', 'error')
-        elif len(password) < 6:
-            flash('Пароль должен содержать минимум 6 символов', 'error')
-        elif password != confirm_password:
-            flash('Пароли не совпадают', 'error')
-        else:
+            # Валидация
+            errors = []
+            if len(username) < 3:
+                errors.append('Логин должен содержать минимум 3 символа')
+            if len(password) < 6:
+                errors.append('Пароль должен содержать минимум 6 символов')
+            if password != confirm_password:
+                errors.append('Пароли не совпадают')
+
+            if errors:
+                for error in errors:
+                    flash(error, 'error')
+                return render_template('register.html', username=username)
+
             hashed_password = generate_password_hash(password)
-
-            try:
-                conn = sqlite3.connect("school.db")
+            with get_db() as conn:
                 cursor = conn.cursor()
-                cursor.execute('INSERT INTO users (username, password, is_teacher) VALUES (?, ?, ?)',
-                               (username, hashed_password, is_teacher))
+                cursor.execute(
+                    'INSERT INTO users (username, password, is_teacher) VALUES (?, ?, ?)',
+                    (username, hashed_password, is_teacher)
+                )
                 conn.commit()
-                conn.close()
-                flash('Регистрация успешна! Теперь войдите', 'success')
-                return redirect(url_for('login'))
-            except sqlite3.IntegrityError:
-                flash('Пользователь с таким именем уже существует', 'error')
+
+            flash('Регистрация успешна! Теперь войдите', 'success')
+            return redirect(url_for('login'))
+
+        except sqlite3.IntegrityError:
+            flash('Пользователь с таким именем уже существует', 'error')
+        except Exception as e:
+            flash('Произошла ошибка при регистрации', 'error')
+            print(f"Ошибка регистрации: {e}")
 
     return render_template('register.html')
 
@@ -404,18 +440,5 @@ def update_award():
 
 
 if __name__ == "__main__":
-    try:
-        # Инициализация БД
-        print("Инициализация базы данных...")
-        init_db()
-
-        # Создаем первого учителя
-        print("Создание первого учителя...")
-        create_first_teacher()
-
-        # Запуск приложения
-        print("Запуск приложения...")
-        app.run(debug=True)
-    except Exception as e:
-        print(f"Фатальная ошибка при запуске: {e}")
-        raise
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
