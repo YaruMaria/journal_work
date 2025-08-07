@@ -9,7 +9,7 @@ from flask_wtf.csrf import CSRFProtect
 
 app = Flask(
     __name__,
-    template_folder='/home/Mariaschoolwork/myflaskapp/templates'  # Именно этот путь!
+    template_folder='/home/Mariaschoolwork/myflaskapp/templates'  # Точный путь!
 )
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['SESSION_PERMANENT'] = False
@@ -20,7 +20,7 @@ app.config['WTF_CSRF_ENABLED'] = True  # Включаем CSRF защиту
 csrf = CSRFProtect(app)
 
 # Конфигурация базы данных
-DB_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "school.db")
+DB_PATH = '/home/Mariaschoolwork/myflaskapp/school.db'
 
 
 def get_db():
