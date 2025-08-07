@@ -22,6 +22,15 @@ csrf = CSRFProtect(app)
 # Конфигурация базы данных
 DB_PATH = '/home/Mariaschoolwork/myflaskapp/school.db'
 
+@app.route('/debug_templates')
+def debug_templates():
+    import os
+    return {
+        "template_folder": app.template_folder,
+        "actual_path": os.path.join(app.template_folder, 'login.html'),
+        "exists": os.path.exists(os.path.join(app.template_folder, 'login.html')),
+        "files_in_folder": os.listdir(app.template_folder)
+    }
 
 def get_db():
     """Устанавливает соединение с базой данных"""
