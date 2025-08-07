@@ -48,6 +48,38 @@ def get_db():
 
 
 def init_db():
+    print(f"Инициализация базы данных по пути: {DB_PATH}")
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        # Проверяем существование всех таблиц
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        existing_tables = [row[0] for row in cursor.fetchall()]
+
+        required_tables = {'users', 'students', 'lessons', 'monthly_awards'}
+        missing_tables = required_tables - set(existing_tables)
+
+        if missing_tables:
+            print(f"Создаем отсутствующие таблицы: {missing_tables}")
+            cursor.executescript("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        password TEXT NOT NULL,
+                        is_teacher BOOLEAN DEFAULT 0
+                    );
+                    /* Остальные CREATE TABLE */
+                """)
+            conn.commit()
+        else:
+            print("Все таблицы уже существуют")
+
+    except Exception as e:
+        print(f"Ошибка при инициализации БД: {e}")
+        raise
+    finally:
+        conn.close()
     """Инициализирует базу данных и создает таблицы"""
     print(f"Инициализация базы данных по пути: {DB_PATH}")
     try:
@@ -138,9 +170,13 @@ def check_db_exists():
 
 check_db_exists()
 
-with app.app_context():
-    init_db()
-    create_first_teacher()
+def initialize_database():
+    with app.app_context():
+        init_db()
+        create_first_teacher()
+
+# Вызываем инициализацию при старте
+initialize_database()
 
 # Декораторы для проверки прав
 def login_required(f):
