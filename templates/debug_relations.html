@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Отладка связей</title>
+</head>
+<body>
+    <h1>Отладка связей родитель-ученик</h1>
+
+    <h2>Текущий пользователь</h2>
+    <p>ID: {{ current_user.id }}, Имя: {{ current_user.username }}, Родитель: {{ 'Да' if current_user.is_parent else 'Нет' }}</p>
+
+    <h2>Все связи</h2>
+    <table border="1">
+        <tr>
+            <th>ID родителя</th>
+            <th>Родитель</th>
+            <th>ID ученика</th>
+            <th>Ученик</th>
+        </tr>
+        {% for rel in relations %}
+        <tr>
+            <td>{{ rel.parent_id }}</td>
+            <td>{{ rel.parent_name }}</td>
+            <td>{{ rel.student_id }}</td>
+            <td>{{ rel.student_name }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <a href="{{ url_for('parent_dashboard') }}">Назад</a>
+</body>
+</html>

@@ -10,9 +10,15 @@
         :root {
             --primary: #4f46e5;
             --primary-light: #e0e7ff;
-            --dark: #1f2937;
-            --light: #f9fafb;
-            --gray: #9ca3af;
+            --primary-lighter: #f5f7ff;
+            --primary-dark: #3a56d4;
+            --secondary: #7b2cbf;
+            --dark: #1e293b;
+            --darker: #0f172a;
+            --light: #f8fafc;
+            --lighter: #ffffff;
+            --gray: #94a3b8;
+            --gray-light: #e2e8f0;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
@@ -34,6 +40,7 @@
             padding: 20px;
             overflow-x: hidden;
             background: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
+            min-height: 100vh;
         }
 
         /* Пузырьковый фон */
@@ -49,86 +56,44 @@
 
         .bubble {
             position: absolute;
-            bottom: -100px;
-            background: rgba(79, 70, 229, 0.1);
+            bottom: -150px;
+            background: radial-gradient(circle at center,
+                      rgba(123, 44, 191, 0.15) 0%,
+                      rgba(67, 97, 238, 0.1) 50%,
+                      transparent 70%);
             border-radius: 50%;
             animation: rise 15s infinite ease-in;
+            filter: blur(1.5px);
+            opacity: 0.8;
+            mix-blend-mode: overlay;
         }
 
-        .bubble:nth-child(1) {
-            width: 40px;
-            height: 40px;
-            left: 10%;
-            animation-duration: 8s;
-        }
-
-        .bubble:nth-child(2) {
-            width: 20px;
-            height: 20px;
-            left: 20%;
-            animation-duration: 5s;
-            animation-delay: 1s;
-        }
-
-        .bubble:nth-child(3) {
-            width: 50px;
-            height: 50px;
-            left: 35%;
-            animation-duration: 7s;
-            animation-delay: 2s;
-        }
-
-        .bubble:nth-child(4) {
-            width: 80px;
-            height: 80px;
-            left: 50%;
-            animation-duration: 11s;
-            animation-delay: 0s;
-        }
-
-        .bubble:nth-child(5) {
-            width: 35px;
-            height: 35px;
-            left: 55%;
-            animation-duration: 6s;
-            animation-delay: 1s;
-        }
-
-        .bubble:nth-child(6) {
-            width: 45px;
-            height: 45px;
-            left: 65%;
-            animation-duration: 8s;
-            animation-delay: 3s;
-        }
-
-        .bubble:nth-child(7) {
-            width: 25px;
-            height: 25px;
-            left: 75%;
-            animation-duration: 7s;
-            animation-delay: 2s;
-        }
-
-        .bubble:nth-child(8) {
-            width: 80px;
-            height: 80px;
-            left: 80%;
-            animation-duration: 6s;
-            animation-delay: 1s;
+        .bubble:nth-child(odd) {
+            background: radial-gradient(circle at center,
+                      rgba(67, 97, 238, 0.15) 0%,
+                      rgba(123, 44, 191, 0.1) 50%,
+                      transparent 70%);
         }
 
         @keyframes rise {
             0% {
-                bottom: -100px;
-                transform: translateX(0);
+                bottom: -150px;
+                transform: translateX(0) scale(0.8);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.8;
             }
             50% {
-                transform: translateX(100px);
+                transform: translateX(100px) scale(1);
+            }
+            80% {
+                opacity: 0.6;
             }
             100% {
-                bottom: 1080px;
-                transform: translateX(-200px);
+                bottom: 120vh;
+                transform: translateX(-150px) scale(1.3);
+                opacity: 0;
             }
         }
 
@@ -140,7 +105,55 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             padding: 30px;
             position: relative;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(224, 231, 255, 0.6);
+        }
+
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: var(--darker);
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            letter-spacing: -0.5px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.85rem 2rem;
+            border-radius: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.25);
+            font-size: 1rem;
+            position: relative;
             overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.35);
         }
 
         .back-link {
@@ -155,7 +168,7 @@
         }
 
         .back-link:hover {
-            color: #4338ca;
+            color: var(--primary-dark);
         }
 
         .student-header {
@@ -576,69 +589,6 @@
             100% { color: #FFD700; }
         }
 
-        /* Стили для салюта */
-        .firework {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 5px;
-            height: 5px;
-            background: #FFD700;
-            border-radius: 50%;
-            box-shadow: 0 0 10px 5px #FFD700;
-            animation: fireworkRise 1s ease-out forwards, fireworkExplode 0.5s 1s ease-out forwards;
-            opacity: 0;
-            z-index: 2000;
-        }
-
-        @keyframes fireworkRise {
-            0% {
-                transform: translate(-50%, 0) scale(0.5);
-                opacity: 0;
-            }
-            50% {
-                opacity: 1;
-            }
-            100% {
-                transform: translate(-50%, -50vh) scale(1);
-                opacity: 1;
-            }
-        }
-
-        @keyframes fireworkExplode {
-            0% {
-                transform: translate(-50%, -50vh) scale(1);
-                opacity: 1;
-                box-shadow: 0 0 10px 5px #FFD700;
-            }
-            100% {
-                transform: translate(-50%, -50vh) scale(30);
-                opacity: 0;
-                box-shadow: 0 0 100px 50px transparent;
-            }
-        }
-
-        .particle {
-            position: absolute;
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            animation: particleFly 1s ease-out forwards;
-            opacity: 0;
-            z-index: 2000;
-        }
-
-        @keyframes particleFly {
-            0% {
-                transform: translate(0, 0) scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(var(--tx), var(--ty)) scale(0);
-                opacity: 0;
-            }
-        }
-
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .container {
@@ -673,6 +623,9 @@
         <div class="bubble"></div>
         <div class="bubble"></div>
     </div>
+
+    <!-- CSRF Token -->
+    <input type="hidden" id="csrf_token" name="csrf_token" value="{{ csrf_token() }}"/>
 
     <div class="container">
         <a href="{{ url_for('home') }}" class="back-link">
@@ -884,6 +837,45 @@
             selectedCoins = parseInt(element.dataset.value);
         }
 
+        // Save selected coins
+        function saveCoins() {
+            const csrfToken = document.getElementById('csrf_token').value;
+            const display = document.getElementById(`${currentType}-display-${currentLessonId}`);
+            display.innerHTML = '';
+            for (let i = 0; i < selectedCoins; i++) {
+                display.innerHTML += '🪙';
+            }
+
+            fetch(`/set_coins/${currentLessonId}/${currentType}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: `coins=${selectedCoins}&student_id=${currentStudentId}&csrf_token=${csrfToken}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сети');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    updateProgress();
+                } else {
+                    console.error('Ошибка сохранения:', data.error || 'Неизвестная ошибка');
+                    alert('Ошибка сохранения: ' + (data.error || 'Попробуйте снова'));
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Ошибка сохранения: ' + error.message);
+            });
+
+            closeCoinModal();
+        }
+
         // Calculate total coins
         function calculateTotalCoins() {
             let total = 0;
@@ -904,94 +896,6 @@
             });
 
             return total;
-        }
-
-        // Create firework particle with realistic effect
-        function createFirework() {
-            const celebration = document.getElementById('celebration');
-
-            // Create the rocket that rises
-            const rocket = document.createElement('div');
-            rocket.className = 'firework';
-            rocket.style.left = `${Math.random() * 80 + 10}%`;
-            celebration.appendChild(rocket);
-
-            // After rocket reaches top, create explosion
-            setTimeout(() => {
-                // Remove the rocket
-                rocket.remove();
-
-                // Create explosion particles
-                const particleCount = 50 + Math.floor(Math.random() * 50);
-                const colors = [
-                    '#FFD700', '#FF4500', '#FF1493', '#00BFFF', '#32CD32',
-                    '#FF00FF', '#FF8C00', '#7CFC00', '#9400D3', '#00FFFF'
-                ];
-
-                for (let i = 0; i < particleCount; i++) {
-                    const particle = document.createElement('div');
-                    particle.className = 'particle';
-                    particle.style.left = rocket.style.left;
-                    particle.style.top = rocket.style.top;
-                    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-
-                    // Random direction and distance
-                    const angle = Math.random() * Math.PI * 2;
-                    const distance = 50 + Math.random() * 100;
-                    const tx = Math.cos(angle) * distance;
-                    const ty = Math.sin(angle) * distance;
-
-                    particle.style.setProperty('--tx', `${tx}px`);
-                    particle.style.setProperty('--ty', `${ty}px`);
-
-                    // Random size and animation duration
-                    const size = 3 + Math.random() * 7;
-                    particle.style.width = `${size}px`;
-                    particle.style.height = `${size}px`;
-                    particle.style.animationDuration = `${0.5 + Math.random() * 1}s`;
-
-                    celebration.appendChild(particle);
-
-                    // Remove particle after animation
-                    setTimeout(() => {
-                        particle.remove();
-                    }, 1500);
-                }
-            }, 1000);
-        }
-
-        // Play celebration sound
-        function playCelebrationSound() {
-            const audio = new Audio();
-            audio.src = "https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3";
-            audio.play().catch(e => console.log("Audio play failed:", e));
-        }
-
-        // Show celebration animation with realistic fireworks
-        function showCelebration() {
-            playCelebrationSound();
-
-            const celebration = document.getElementById('celebration');
-            celebration.classList.add('active');
-
-            // Launch multiple fireworks in sequence
-            const fireworksCount = 8;
-            let launched = 0;
-
-            const launchInterval = setInterval(() => {
-                if (launched >= fireworksCount) {
-                    clearInterval(launchInterval);
-                    return;
-                }
-
-                createFirework();
-                launched++;
-            }, 300 + Math.random() * 300);
-
-            // Hide after all animations complete
-            setTimeout(() => {
-                celebration.classList.remove('active');
-            }, 5000);
         }
 
         // Update progress bars
@@ -1055,25 +959,23 @@
             lastTotalCoins = total;
         }
 
-        // Save selected coins
-        function saveCoins() {
-            const display = document.getElementById(`${currentType}-display-${currentLessonId}`);
-            display.innerHTML = '';
-            for (let i = 0; i < selectedCoins; i++) {
-                display.innerHTML += '🪙';
+        // Show celebration animation
+        function showCelebration() {
+            const celebration = document.getElementById('celebration');
+            celebration.classList.add('active');
+
+            // Play sound if available
+            try {
+                const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3');
+                audio.play().catch(e => console.log("Audio play failed:", e));
+            } catch (e) {
+                console.log("Audio error:", e);
             }
 
-            fetch(`/set_coins/${currentLessonId}/${currentType}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `coins=${selectedCoins}&student_id=${currentStudentId}`
-            }).then(() => {
-                updateProgress();
-            });
-
-            closeCoinModal();
+            // Hide after animation
+            setTimeout(() => {
+                celebration.classList.remove('active');
+            }, 5000);
         }
 
         // Awards section functionality
@@ -1102,6 +1004,7 @@
         }
 
         function selectAward(award) {
+            const csrfToken = document.getElementById('csrf_token').value;
             currentAward = award;
             document.querySelectorAll('.award-option').forEach(el => {
                 el.classList.remove('selected-award');
@@ -1112,14 +1015,22 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
                 },
-                body: `student_id={{ student[0] }}&year=${currentYear}&month=${currentMonth}&award=${award}`
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.status === 'success') {
-                      location.reload();
-                  }
-              });
+                body: `student_id={{ student[0] }}&year=${currentYear}&month=${currentMonth}&award=${award}&csrf_token=${csrfToken}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('Ошибка сохранения награды');
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Ошибка сохранения награды');
+            });
         }
 
         function monthName(month) {

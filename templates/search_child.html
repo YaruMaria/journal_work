@@ -131,18 +131,21 @@
             border: 1px solid #E5E7EB;
             border-radius: 10px;
             margin-bottom: 10px;
-            cursor: pointer;
             transition: all 0.2s;
+            background: white;
         }
 
         .student-card:hover {
             border-color: var(--primary);
             background-color: #EFF6FF;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .student-name {
             font-weight: 600;
             margin-bottom: 5px;
+            color: var(--dark);
         }
 
         .student-info {
@@ -156,13 +159,22 @@
             padding: 20px;
         }
 
-        .search-form {
-            display: flex;
-            flex-direction: column;
+        .student-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .access-denied {
+            color: #EF4444;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
+    <!-- Пузыри фона -->
     <div class="bubble" style="width: 350px; height: 350px; left: 5%; top: 50%; background: rgba(59, 130, 246, 0.45); animation-duration: 18s;"></div>
     <div class="bubble" style="width: 400px; height: 400px; left: 60%; top: 10%; background: rgba(99, 102, 241, 0.4); animation-duration: 22s;"></div>
     <div class="bubble" style="width: 300px; height: 300px; left: 30%; top: 70%; background: rgba(236, 72, 153, 0.35); animation-duration: 15s;"></div>
@@ -174,31 +186,53 @@
         </div>
 
         <div class="search-body">
-            <form method="GET" action="/search_student" class="search-form">
+            <!-- Форма поиска -->
+            <form method="GET" action="{{ url_for('search_student') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="form-group">
                     <label for="search" class="form-label">Имя ребенка</label>
-                    <input type="text" id="search" name="query" class="form-input" placeholder="Начните вводить имя..." required minlength="2">
+                    <input type="text"
+                           id="search"
+                           name="query"
+                           class="form-input"
+                           placeholder="Введите имя..."
+                           value="{{ query if query else '' }}"
+                           required
+                           minlength="2">
                 </div>
-
                 <button type="submit" class="btn">Найти</button>
             </form>
 
-            {% if students %}
-                <div class="results">
-                    {% for student in students %}
-                        <a href="/student/{{ student.id }}" style="text-decoration: none;">
-                            <div class="student-card">
-                                <div class="student-name">{{ student.name }}</div>
-                                <div class="student-info">
-                                    Уровень: {{ student.level or 'не указан' }} |
-                                    Дата начала: {{ student.start_date or 'не указана' }}
-                                </div>
+            <!-- Сообщение об ошибке доступа -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'error' %}
+                            <div class="access-denied">
+                                {{ message }}
                             </div>
-                        </a>
+                        {% endif %}
                     {% endfor %}
-                </div>
-            {% else %}
-                <div class="no-results">Дети не найдены</div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Результаты поиска -->
+            {% if students %}
+            <div class="results">
+                {% for student in students %}
+                <a href="{{ url_for('student', student_id=student.id) }}" class="student-link">
+                    <div class="student-card">
+                        <div class="student-name">{{ student.name }}</div>
+                        <div class="student-info">
+                            Уровень: {{ student.level or 'не указан' }} |
+                            Дата начала: {{ student.start_date or 'не указана' }}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% elif query and query|length >= 2 %}
+            <div class="no-results">Дети не найдены</div>
             {% endif %}
         </div>
     </div>

@@ -37,14 +37,14 @@ def init_db():
         # Проверяем существование таблиц
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
         if not cursor.fetchone():
-            # Создаем все таблицы с нуля
+            # Создаем таблицы, если они не существуют
             cursor.executescript("""
                 CREATE TABLE users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
-                    is_teacher BOOLEAN DEFAULT 0,
-                    is_parent BOOLEAN DEFAULT 0
+                    role TEXT NOT NULL CHECK(role IN ('teacher', 'parent', 'admin')),
+                    is_teacher BOOLEAN DEFAULT 0
                 );
 
                 CREATE TABLE students (
@@ -78,90 +78,21 @@ def init_db():
                     UNIQUE(student_id, year, month)
                 );
 
-                CREATE TABLE parent_child (
+                CREATE TABLE parents (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    parent_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
                     student_id INTEGER NOT NULL,
-                    FOREIGN KEY (parent_id) REFERENCES users(id),
+                    FOREIGN KEY (user_id) REFERENCES users(id),
                     FOREIGN KEY (student_id) REFERENCES students(id),
-                    UNIQUE(parent_id, student_id)
+                    UNIQUE(user_id, student_id)
                 );
             """)
             conn.commit()
-            print("Все таблицы успешно созданы")
+            print("Таблицы успешно созданы")
         else:
-            # Если таблицы уже существуют, добавляем недостающие колонки
-            try:
-                # Добавляем is_parent в users, если его нет
-                cursor.execute("ALTER TABLE users ADD COLUMN is_parent BOOLEAN DEFAULT 0")
-                print("Добавлен столбец is_parent в таблицу users")
-            except sqlite3.OperationalError as e:
-                if "duplicate column name" not in str(e):
-                    raise
-                print("Столбец is_parent уже существует")
-
-            # Создаем таблицу parent_child, если ее нет
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS parent_child (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    parent_id INTEGER NOT NULL,
-                    student_id INTEGER NOT NULL,
-                    FOREIGN KEY (parent_id) REFERENCES users(id),
-                    FOREIGN KEY (student_id) REFERENCES students(id),
-                    UNIQUE(parent_id, student_id)
-                )
-            """)
-
-            # Проверяем и добавляем другие таблицы, если их нет
-            tables_to_check = ['students', 'lessons', 'monthly_awards']
-            for table in tables_to_check:
-                cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
-                if not cursor.fetchone():
-                    if table == 'students':
-                        cursor.execute("""
-                            CREATE TABLE students (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                name TEXT NOT NULL,
-                                level TEXT,
-                                start_date TEXT,
-                                goal TEXT,
-                                teacher_id INTEGER,
-                                FOREIGN KEY (teacher_id) REFERENCES users(id)
-                            )
-                        """)
-                    elif table == 'lessons':
-                        cursor.execute("""
-                            CREATE TABLE lessons (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                student_id INTEGER NOT NULL,
-                                date TEXT NOT NULL,
-                                topic TEXT NOT NULL,
-                                understanding INTEGER DEFAULT 0,
-                                participation INTEGER DEFAULT 0,
-                                homework TEXT,
-                                FOREIGN KEY (student_id) REFERENCES students(id)
-                            )
-                        """)
-                    elif table == 'monthly_awards':
-                        cursor.execute("""
-                            CREATE TABLE monthly_awards (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                student_id INTEGER NOT NULL,
-                                year INTEGER NOT NULL,
-                                month INTEGER NOT NULL,
-                                award INTEGER,
-                                FOREIGN KEY (student_id) REFERENCES students(id),
-                                UNIQUE(student_id, year, month)
-                            )
-                        """)
-                    print(f"Таблица {table} создана")
-
-            conn.commit()
-            print("Проверка и обновление структуры базы данных завершены")
-
+            print("Таблицы уже существуют")
     except sqlite3.Error as e:
         print(f"Ошибка при инициализации базы данных: {e}")
-        conn.rollback()
         raise
     finally:
         conn.close()
@@ -177,8 +108,8 @@ def create_first_teacher():
         if not cursor.fetchone():
             hashed_password = generate_password_hash("admin123")
             cursor.execute(
-                "INSERT INTO users (username, password, is_teacher) VALUES (?, ?, 1)",
-                ("admin", hashed_password)
+                "INSERT INTO users (username, password, role, is_teacher) VALUES (?, ?, ?, ?)",
+                ("admin", hashed_password, "admin", 1)
             )
             conn.commit()
             print("Создан учитель по умолчанию: admin/admin123")
@@ -228,7 +159,7 @@ def login():
             with get_db() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    'SELECT id, username, password, is_teacher, is_parent FROM users WHERE username = ?',
+                    'SELECT id, username, password, is_teacher, role FROM users WHERE username = ?',
                     (username,)
                 )
                 user = cursor.fetchone()
@@ -237,14 +168,9 @@ def login():
                 session['user_id'] = user['id']
                 session['username'] = user['username']
                 session['is_teacher'] = bool(user['is_teacher'])
-                session['is_parent'] = bool(user['is_parent'])
+                session['is_parent'] = user['role'] == 'parent'
                 flash('Вы успешно вошли в систему', 'success')
-
-                # Перенаправляем в зависимости от роли
-                if user['is_parent']:
-                    return redirect(url_for('parent_dashboard'))
-                else:
-                    return redirect(url_for('home'))
+                return redirect(url_for('home'))
 
             flash('Неверный логин или пароль', 'error')
         except Exception as e:
@@ -261,8 +187,7 @@ def register():
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '').strip()
             confirm_password = request.form.get('confirm_password', '').strip()
-            is_teacher = 1 if request.form.get('is_teacher') == 'on' else 0
-            is_parent = 1 if request.form.get('is_parent') == 'on' else 0
+            role = request.form.get('role', 'parent')  # По умолчанию parent
 
             # Валидация
             errors = []
@@ -272,8 +197,8 @@ def register():
                 errors.append('Пароль должен содержать минимум 6 символов')
             if password != confirm_password:
                 errors.append('Пароли не совпадают')
-            if is_teacher and is_parent:
-                errors.append('Вы не можете быть одновременно учителем и родителем')
+            if role not in ['teacher', 'parent']:
+                errors.append('Необходимо выбрать роль')
 
             if errors:
                 for error in errors:
@@ -284,8 +209,8 @@ def register():
             with get_db() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    'INSERT INTO users (username, password, is_teacher, is_parent) VALUES (?, ?, ?, ?)',
-                    (username, hashed_password, is_teacher, is_parent)
+                    'INSERT INTO users (username, password, role, is_teacher) VALUES (?, ?, ?, ?)',
+                    (username, hashed_password, role, 1 if role == 'teacher' else 0)
                 )
                 conn.commit()
 
@@ -301,36 +226,93 @@ def register():
     return render_template('register.html')
 
 
-@app.route('/search_student')
+@app.route('/find_student', methods=['GET', 'POST'])
 @login_required
-def search_student():
+def find_student():
     if not session.get('is_parent'):
         return redirect(url_for('home'))
 
-    query = request.args.get('query', '').strip()
-    if len(query) < 2:
-        return render_template('search_child.html', students=[])
+    search_name = request.form.get('student_name', '').strip()
+    students = []
 
-    conn = get_db()
-    cursor = conn.cursor()
+    try:
+        if search_name:
+            conn = get_db()
+            cursor = conn.cursor()
 
-    # Ищем студентов по имени
-    cursor.execute("""
-        SELECT id, name, level, start_date 
-        FROM students 
-        WHERE name LIKE ? 
-        LIMIT 10
-    """, (f'%{query}%',))
+            # Ищем по имени или фамилии (если введены оба слова)
+            search_terms = search_name.split()
+            query = """
+                SELECT s.id, s.name, s.level, s.start_date, s.goal, 
+                       u.username as teacher_name 
+                FROM students s
+                LEFT JOIN users u ON s.teacher_id = u.id
+                WHERE {}
+                ORDER BY s.name
+            """.format(
+                " AND ".join(["s.name LIKE ?" for _ in search_terms])
+            )
 
-    students = [dict(row) for row in cursor.fetchall()]
-    conn.close()
+            params = [f'%{term}%' for term in search_terms]
+            cursor.execute(query, params)
+            students = cursor.fetchall()
 
-    # Для GET-запросов с параметром query возвращаем HTML с результатами
-    if 'query' in request.args:
-        return render_template('search_child.html', students=students)
+            # Логирование для отладки
+            app.logger.debug(f"Search for '{search_name}' returned {len(students)} results")
+            if students:
+                app.logger.debug(f"Found students: {[s['name'] for s in students]}")
 
-    # Для AJAX-запросов возвращаем JSON
-    return jsonify(students)
+    except Exception as e:
+        app.logger.error(f"Search error: {str(e)}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'error': str(e)}), 500
+
+    # AJAX-запрос
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if 'error' in locals():
+            return jsonify({'error': 'Ошибка при поиске'}), 500
+        html = render_template('_student_results.html',
+                               students=students,
+                               search_name=search_name)
+        return jsonify({'html': html})
+
+    return render_template('find_student.html',
+                           students=students,
+                           search_name=search_name)
+
+
+@app.route('/link_student/<int:student_id>')
+@login_required
+def link_student(student_id):
+    if not session.get('is_parent'):
+        return redirect(url_for('home'))
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Проверяем, что студент существует
+        cursor.execute("SELECT id FROM students WHERE id = ?", (student_id,))
+        if not cursor.fetchone():
+            flash('Ученик не найден', 'error')
+            return redirect(url_for('find_student'))
+
+        # Связываем родителя с учеником
+        cursor.execute(
+            "INSERT OR IGNORE INTO parents (user_id, student_id) VALUES (?, ?)",
+            (session['user_id'], student_id)
+        )
+        conn.commit()
+        flash('Ученик успешно привязан к вашему аккаунту', 'success')
+
+    except Exception as e:
+        conn.rollback()
+        flash('Произошла ошибка при привязке ученика', 'error')
+        print(f"Ошибка привязки ученика: {e}")
+    finally:
+        conn.close()
+
+    return redirect(url_for('parent_dashboard'))
 
 
 @app.route('/parent_dashboard')
@@ -339,28 +321,27 @@ def parent_dashboard():
     if not session.get('is_parent'):
         return redirect(url_for('home'))
 
-    return render_template('search_child.html')
+    conn = get_db()
+    cursor = conn.cursor()
 
-@app.route("/home")
-@login_required
-def home():
-    """Главная страница после входа"""
-    if session.get('is_parent'):
-        # Для родителей перенаправляем на поиск ребенка
-        return redirect(url_for('parent_dashboard'))
-    elif session.get('is_teacher'):
-        # Для учителей показываем список учеников
-        conn = sqlite3.connect("school.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM students WHERE teacher_id = ?", (session['user_id'],))
-        students = cursor.fetchall()
-        conn.close()
-        return render_template("index.html", students=students)
-    else:
-        # Для других ролей (если будут добавлены)
-        flash("У вас нет прав доступа", "error")
-        return redirect(url_for('login'))
-# Обновим home для родителей
+    # Получаем всех привязанных учеников
+    cursor.execute("""
+        SELECT s.id, s.name, s.level 
+        FROM students s
+        JOIN parents p ON s.id = p.student_id
+        WHERE p.user_id = ?
+    """, (session['user_id'],))
+    students = cursor.fetchall()
+
+    conn.close()
+
+    return render_template('parent_dashboard.html', students=students)
+
+
+# Обновляем функцию home() для перенаправления родителей
+
+
+
 
 @app.route('/logout')
 def logout():
@@ -369,140 +350,118 @@ def logout():
     return redirect(url_for('login'))
 
 # Основные маршруты
-
-@app.route('/debug/parent_child')
+@app.route("/home")
 @login_required
-@teacher_required
-def debug_parent_child():
-    conn = get_db()
+def home():
+    """Страница 'Мои ученики'"""
+    if session.get('is_parent'):
+        return redirect(url_for('parent_dashboard'))
+
+    conn = sqlite3.connect("school.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM parent_child")
-    relations = cursor.fetchall()
+
+    if session.get('is_teacher'):
+        cursor.execute("SELECT * FROM students WHERE teacher_id = ?", (session['user_id'],))
+    else:
+        cursor.execute("SELECT * FROM students LIMIT 0")
+
+    students = cursor.fetchall()
     conn.close()
-    return str(relations)
+    return render_template("index.html", students=students)
 
 @app.route("/student/<int:student_id>")
 @login_required
 def student(student_id):
-    print(f"Attempting to access student page for ID: {student_id}")  # Отладочное сообщение
+    """Страница ученика с его данными и прогрессом"""
     conn = get_db()
     cursor = conn.cursor()
 
-    # Получаем данные ученика
-    cursor.execute("""
-        SELECT s.*, u.username as teacher_name 
-        FROM students s
-        LEFT JOIN users u ON s.teacher_id = u.id
-        WHERE s.id = ?
-    """, (student_id,))
-    student = cursor.fetchone()
+    try:
+        # Проверяем права доступа
+        if session.get('is_teacher'):
+            # Учитель видит только своих учеников
+            cursor.execute("""
+                SELECT s.*, u.username as teacher_name 
+                FROM students s
+                LEFT JOIN users u ON s.teacher_id = u.id
+                WHERE s.id = ? AND s.teacher_id = ?
+            """, (student_id, session['user_id']))
+        elif session.get('is_parent'):
+            # Родитель видит только привязанных учеников
+            cursor.execute("""
+                SELECT s.*, u.username as teacher_name 
+                FROM students s
+                LEFT JOIN users u ON s.teacher_id = u.id
+                JOIN parents p ON s.id = p.student_id
+                WHERE s.id = ? AND p.user_id = ?
+            """, (student_id, session['user_id']))
+        else:
+            # Другие пользователи не имеют доступа
+            cursor.execute("SELECT * FROM students WHERE id = ? LIMIT 0", (student_id,))
 
-    if not student:
-        conn.close()
-        flash("Ученик не найден", "error")
-        return redirect(url_for("home"))
+        student = cursor.fetchone()
 
-    # Проверка прав доступа
-    if session.get('is_parent'):
-        # Для родителей проверяем связь в parent_child
-        cursor.execute("""
-            SELECT 1 FROM parent_child 
-            WHERE parent_id = ? AND student_id = ?
-        """, (session['user_id'], student_id))
-        if not cursor.fetchone():
-            conn.close()
-            flash("У вас нет доступа к этому ученику", "error")
-            return redirect(url_for("parent_dashboard"))
-    elif session.get('is_teacher'):
-        # Для учителей проверяем, что ученик привязан к нему
-        if student['teacher_id'] != session['user_id']:
-            conn.close()
-            flash("У вас нет доступа к этому ученику", "error")
+        if not student:
+            flash("Ученик не найден или у вас нет прав доступа", "error")
             return redirect(url_for("home"))
-    else:
-        # Для других ролей (если будут)
-        conn.close()
-        flash("У вас нет прав доступа", "error")
+
+        # Для учителей создаем недостающие уроки (первые 8)
+        if session.get('is_teacher'):
+            cursor.execute("SELECT COUNT(*) FROM lessons WHERE student_id = ?", (student_id,))
+            lesson_count = cursor.fetchone()[0]
+
+            if lesson_count < 8:
+                for i in range(lesson_count + 1, 9):
+                    cursor.execute(
+                        "INSERT INTO lessons (student_id, date, topic) VALUES (?, ?, ?)",
+                        (student_id, datetime.now().strftime("%Y-%m-%d"), f"Урок {i}")
+                    )
+                conn.commit()
+
+        # Получаем уроки
+        cursor.execute("""
+            SELECT id, student_id, date, topic, 
+                   COALESCE(understanding, 0) as understanding,
+                   COALESCE(participation, 0) as participation,
+                   COALESCE(NULLIF(homework, ''), '0') as homework
+            FROM lessons 
+            WHERE student_id = ? 
+            ORDER BY id ASC
+            LIMIT 8
+        """, (student_id,))
+        lessons = cursor.fetchall()
+
+        # Получаем награды по месяцам
+        cursor.execute("""
+            SELECT year, month, award 
+            FROM monthly_awards 
+            WHERE student_id = ?
+        """, (student_id,))
+        awards = {(year, month): award for year, month, award in cursor.fetchall()}
+
+        # Получаем общее количество монет для прогресса
+        total_coins = 0
+        for lesson in lessons:
+            total_coins += lesson['understanding'] + lesson['participation'] + (int(lesson['homework']) if lesson['homework'].isdigit() else 0)
+
+        # Проверяем, является ли текущий пользователь учителем этого ученика
+        is_current_teacher = session.get('is_teacher') and student['teacher_id'] == session['user_id']
+
+    except Exception as e:
+        flash("Произошла ошибка при загрузке данных ученика", "error")
+        print(f"Ошибка загрузки ученика: {e}")
         return redirect(url_for("home"))
-
-    # Если доступ разрешен, продолжаем обработку
-    if session.get('is_teacher'):
-        cursor.execute("SELECT COUNT(*) FROM lessons WHERE student_id = ?", (student_id,))
-        lesson_count = cursor.fetchone()[0]
-
-        if lesson_count < 8:
-            for i in range(lesson_count + 1, 9):
-                cursor.execute(
-                    "INSERT INTO lessons (student_id, date, topic) VALUES (?, ?, ?)",
-                    (student_id, datetime.now().strftime("%Y-%m-%d"), f"Урок {i}")
-                )
-            conn.commit()
-
-    cursor.execute("""
-        SELECT id, student_id, date, topic, 
-               COALESCE(understanding, 0) as understanding,
-               COALESCE(participation, 0) as participation,
-               COALESCE(NULLIF(homework, ''), '0') as homework
-        FROM lessons 
-        WHERE student_id = ? 
-        ORDER BY id ASC
-        LIMIT 8
-    """, (student_id,))
-    lessons = cursor.fetchall()
-
-    cursor.execute("SELECT year, month, award FROM monthly_awards WHERE student_id = ?", (student_id,))
-    awards = {(year, month): award for year, month, award in cursor.fetchall()}
-
-    conn.close()
+    finally:
+        conn.close()
 
     return render_template("student.html",
                          student=student,
                          lessons=lessons,
                          awards=awards,
+                         total_coins=total_coins,
+                         is_current_teacher=is_current_teacher,
                          current_date=datetime.now(),
                          relativedelta=relativedelta)
-
-
-@app.route('/link_child', methods=['POST'])
-@login_required
-@teacher_required
-def link_child():
-    parent_id = request.form.get('parent_id')
-    student_id = request.form.get('student_id')
-
-    try:
-        conn = get_db()
-        cursor = conn.cursor()
-
-        # Проверяем, что пользователь действительно родитель
-        cursor.execute("SELECT is_parent FROM users WHERE id = ?", (parent_id,))
-        user = cursor.fetchone()
-        if not user or not user['is_parent']:
-            flash("Указанный пользователь не является родителем", "error")
-            return redirect(url_for('admin'))
-
-        # Проверяем существование студента
-        cursor.execute("SELECT 1 FROM students WHERE id = ?", (student_id,))
-        if not cursor.fetchone():
-            flash("Ученик не найден", "error")
-            return redirect(url_for('admin'))
-
-        # Связываем родителя и ребенка
-        cursor.execute("""
-            INSERT OR IGNORE INTO parent_child (parent_id, student_id) 
-            VALUES (?, ?)
-        """, (parent_id, student_id))
-        conn.commit()
-
-        flash("Ребенок успешно привязан к родителю", "success")
-    except Exception as e:
-        conn.rollback()
-        flash(f"Ошибка при привязке ребенка: {str(e)}", "error")
-    finally:
-        conn.close()
-
-    return redirect(url_for('admin'))
-
 
 @app.route("/add_student", methods=["POST"])
 @login_required
@@ -549,30 +508,53 @@ def add_student():
 @app.route("/set_coins/<int:lesson_id>/<string:coin_type>", methods=["POST"])
 @login_required
 def set_coins(lesson_id, coin_type):
-    if coin_type not in ['understanding', 'participation', 'homework']:
-        return jsonify({'status': 'error', 'message': 'Invalid coin type'}), 400
-
-    coins = int(request.form.get('coins', 0))
-    student_id = request.form.get('student_id')
-
-    conn = sqlite3.connect("school.db")
-    cursor = conn.cursor()
     try:
+        coins = int(request.form['coins'])
+        student_id = request.form['student_id']
+
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Проверяем права доступа (учитель или родитель этого ученика)
+        cursor.execute("""
+            SELECT 1 FROM lessons l
+            JOIN students s ON l.student_id = s.id
+            WHERE l.id = ? AND (
+                s.teacher_id = ? OR
+                EXISTS (SELECT 1 FROM parents p 
+                       WHERE p.student_id = s.id AND p.user_id = ?)
+            )
+        """, (lesson_id, session['user_id'], session['user_id']))
+
+        if not cursor.fetchone():
+            return jsonify({'error': 'Доступ запрещён'}), 403
+
+        # Обновляем монеты
         if coin_type == 'homework':
-            cursor.execute(
-                "UPDATE lessons SET homework = ? WHERE id = ?",
-                (str(coins), lesson_id))
+            cursor.execute("""
+                UPDATE lessons SET homework = ?
+                WHERE id = ?
+            """, (str(coins), lesson_id))
         else:
-            cursor.execute(
-                f"UPDATE lessons SET {coin_type} = ? WHERE id = ?",
-                (coins, lesson_id))
+            cursor.execute(f"""
+                UPDATE lessons SET {coin_type} = ?
+                WHERE id = ?
+            """, (coins, lesson_id))
+
         conn.commit()
-        return jsonify({'status': 'success'})
+
+        return jsonify({
+            'success': True,
+            'message': 'Монеты обновлены',
+            'updated_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+
     except Exception as e:
         conn.rollback()
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
+
 
 @app.route("/update_homework/<int:lesson_id>", methods=["POST"])
 @login_required

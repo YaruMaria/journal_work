@@ -1,0 +1,17 @@
+<!-- templates/_student_results.html -->
+{% if students %}
+    {% for student in students %}
+    <div class="student-item" onclick="window.location.href='{{ url_for('link_student', student_id=student[0]) }}'">
+        <div class="student-name">{{ student[1] }}</div>
+        <div class="student-info">
+            Уровень: {{ student[2] or 'не указан' }} |
+            Учитель: {{ student[5] or 'не назначен' }}
+        </div>
+    </div>
+    {% endfor %}
+{% elif request.method == 'POST' %}
+<div class="no-results">
+    <i class="fas fa-search" style="font-size: 24px; margin-bottom: 10px;"></i>
+    <p>Дети с таким именем не найдены</p>
+</div>
+{% endif %}
