@@ -128,6 +128,15 @@ def create_first_teacher():
         raise
     finally:
         conn.close()
+def check_db_exists():
+    if not os.path.exists(DB_PATH):
+        init_db()
+        create_first_teacher()
+        print("База данных и таблицы созданы заново")
+    else:
+        print("База данных уже существует")
+
+check_db_exists()
 
 with app.app_context():
     init_db()
@@ -243,17 +252,26 @@ def logout():
 @login_required
 def home():
     """Страница 'Мои ученики'"""
-    conn = sqlite3.connect("school.db")
-    cursor = conn.cursor()
+    try:
+        conn = get_db()  # Используем вашу функцию get_db()
+        cursor = conn.cursor()
 
-    if session.get('is_teacher'):
-        cursor.execute("SELECT * FROM students WHERE teacher_id = ?", (session['user_id'],))
-    else:
-        cursor.execute("SELECT * FROM students LIMIT 0")
+        if session.get('is_teacher'):
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='students'")
+            if not cursor.fetchone():
+                init_db()  # Пересоздаем таблицы если их нет
 
-    students = cursor.fetchall()
-    conn.close()
-    return render_template("index.html", students=students)
+            cursor.execute("SELECT * FROM students WHERE teacher_id = ?", (session['user_id'],))
+        else:
+            cursor.execute("SELECT * FROM students LIMIT 0")
+
+        students = cursor.fetchall()
+        return render_template("index.html", students=students)
+    except Exception as e:
+        flash(f"Ошибка базы данных: {str(e)}", "error")
+        return render_template("index.html", students=[])
+    finally:
+        conn.close()
 
 @app.route("/student/<int:student_id>")
 @login_required
